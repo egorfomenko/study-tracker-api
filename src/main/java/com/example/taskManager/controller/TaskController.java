@@ -1,6 +1,7 @@
 package com.example.taskManager.controller;
 
-import com.example.taskManager.model.Task;
+import com.example.taskManager.dto.TaskRequestDto;
+import com.example.taskManager.dto.TaskResponseDto;
 import com.example.taskManager.service.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -21,35 +22,35 @@ public class TaskController {
 
 
     @GetMapping("/{id}")
-    public ResponseEntity<Task> getTaskById(
+    public ResponseEntity<TaskResponseDto> getTaskById(
             @PathVariable("id") Long id
     ) {
         return ResponseEntity.status(200).body(taskService.getTaskById(id));
     }
 
     @GetMapping
-    public ResponseEntity<List<Task>> getAllTasks(){
+    public ResponseEntity<List<TaskResponseDto>> getAllTasks(){
         return ResponseEntity.status(200).body(taskService.getAllTasks());
     }
 
 
     @PostMapping
-    public ResponseEntity<Task> createTask(
-           @RequestBody Task task
+    public ResponseEntity<TaskResponseDto> createTask(
+           @RequestBody TaskRequestDto task
     ){
         return ResponseEntity.status(201).body(taskService.createTask(task));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(
+    public ResponseEntity<TaskResponseDto> updateTask(
             @PathVariable Long id,
-            @RequestBody Task task
+            @RequestBody TaskRequestDto task
     ){
         return ResponseEntity.status(200).body(taskService.updateTask(id, task));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Task> deleteTask(
+    public ResponseEntity<TaskResponseDto> deleteTask(
             @PathVariable Long id
     ){
         return ResponseEntity.status(200).body(taskService.deleteTask(id));

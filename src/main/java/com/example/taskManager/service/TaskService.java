@@ -1,15 +1,17 @@
 package com.example.taskManager.service;
 
-
+import com.example.taskManager.dto.TaskRequestDto;
+import com.example.taskManager.dto.TaskResponseDto;
 import com.example.taskManager.enums.TaskStatus;
 import com.example.taskManager.model.Task;
 import com.example.taskManager.repository.TaskRepository;
+import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 
@@ -24,71 +26,73 @@ public class TaskService {
     }
 
 
-
-    public Task getTaskById(Long id){
+    //Получение задач из бд по ID
+    public TaskResponseDto getTaskById(Long id){
         log.info("get task by id");
-        return taskRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Task not found with id: " + id));
+        return toResponse(taskRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Task not found with id: " + id)));
 
     }
-
-    public List<Task> getAllTasks(){
+    //Получение всех задач
+    public List<TaskResponseDto> getAllTasks(){
         log.info("get all tasks");
-        return taskRepository.findAll();
+        List<Task> taskList= taskRepository.findAll();
+        var responseList = taskList.stream().map(t -> toResponse(t)).toList();
+        return responseList;
     }
 
-    public Task createTask(Task task){
-        if(task.getId() != null){
-            throw new IllegalArgumentException("id should be empty");
-        }
-        if(task.getStatus() != null){
-            throw new IllegalArgumentException("status should be empty");
-        }
+    //Создание Задачи и сохранение в базу данных
+    public TaskResponseDto createTask(TaskRequestDto task){
+        Task taskEntity = toEntity(task);
+        return toResponse(taskRepository.save(taskEntity));
+    }
 
-        var newTask = new Task(
+    //Обновление задачи.
+    @Transactional
+    public TaskResponseDto updateTask(Long id, TaskRequestDto requestDto){
+        Task entity = taskRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Task not found with id: " + id));
+        entity.setCreatorId(requestDto.creatorId());
+        entity.setAssignedUserId(requestDto.assignedUserId());
+        entity.setDeadlineDate(requestDto.deadlineDate());
+        entity.setPriority(requestDto.priority());
+
+        return toResponse(entity);
+    }
+
+    //Удаление задачи
+    public TaskResponseDto deleteTask(Long id){
+
+        Task task = taskRepository.findById(id).orElseThrow(() -> new NoSuchElementException(
+                "Task not found with id: " + id
+        ));
+        taskRepository.delete(task);
+        return toResponse(task);
+    }
+
+
+    // Вспомогательные методы для DTO
+    private Task toEntity(TaskRequestDto request){
+        return new Task(
                 null,
-                task.getCreatorId(),
-                task.getAssignedUserId(),
+                request.creatorId(),
+                request.assignedUserId(),
                 TaskStatus.CREATED,
-                task.getCreateDateTime(),
-                task.getDeadlineDate(),
-                task.getPriority()
+                LocalDate.now(),
+                request.deadlineDate(),
+                request.priority()
         );
-        return taskRepository.save(newTask);
-
     }
 
-    public Task updateTask(Long id, Task task){
-        if(!taskRepository.existsById(id)){
-            throw new NoSuchElementException();
-        }
-        if(task.getId() != null){
-            throw new IllegalArgumentException();
-        }
-        if(task.getStatus() != null){
-            throw new IllegalArgumentException();
-        }
-
-        var newTask = new Task(
-                id,
+    private TaskResponseDto toResponse(Task task){
+        return new TaskResponseDto(
+                task.getId(),
                 task.getCreatorId(),
                 task.getAssignedUserId(),
-                taskRepository.findById(id).get().getStatus(),
-                task.getCreateDateTime(),
+                task.getStatus(),
+                task.getCreateDate(),
                 task.getDeadlineDate(),
                 task.getPriority()
         );
-
-        return taskRepository.save(newTask);
-    }
-
-    public Task deleteTask(Long id){
-        if(!taskRepository.existsById(id)){
-            throw new NoSuchElementException();
-        }
-        Task task = taskRepository.findById(id).get();
-        taskRepository.deleteById(id);
-        return task;
     }
 
 }
