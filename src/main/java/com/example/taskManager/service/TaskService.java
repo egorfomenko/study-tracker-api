@@ -1,16 +1,14 @@
 package com.example.taskManager.service;
 
 
-import com.example.taskManager.enums.TaskPriority;
 import com.example.taskManager.enums.TaskStatus;
 import com.example.taskManager.model.Task;
+import com.example.taskManager.repository.TaskRepository;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -19,28 +17,24 @@ import org.slf4j.Logger;
 public class TaskService {
     private static final Logger log = LoggerFactory.getLogger(TaskService.class);
 
-    private final Map<Long, Task> taskMap;
+    private final TaskRepository taskRepository;
 
-    private final AtomicLong idCounter;
-
-    public TaskService(){
-        taskMap = new ConcurrentHashMap<>();
-        idCounter = new AtomicLong();
+    public TaskService(TaskRepository taskRepository){
+        this.taskRepository = taskRepository;
     }
 
 
 
     public Task getTaskById(Long id){
-        if(!taskMap.containsKey(id)){
-            throw new NoSuchElementException("this task doesnt contain: " + id);
-        }
         log.info("get task by id");
-        return taskMap.get(id);
+        return taskRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Task not found with id: " + id));
+
     }
 
     public List<Task> getAllTasks(){
         log.info("get all tasks");
-        return taskMap.values().stream().toList();
+        return taskRepository.findAll();
     }
 
     public Task createTask(Task task){
@@ -52,7 +46,7 @@ public class TaskService {
         }
 
         var newTask = new Task(
-                idCounter.incrementAndGet(),
+                null,
                 task.getCreatorId(),
                 task.getAssignedUserId(),
                 TaskStatus.CREATED,
@@ -60,13 +54,12 @@ public class TaskService {
                 task.getDeadlineDate(),
                 task.getPriority()
         );
-        taskMap.put(newTask.getId(),  newTask);
-        return newTask;
+        return taskRepository.save(newTask);
 
     }
 
     public Task updateTask(Long id, Task task){
-        if(!taskMap.containsKey(id)){
+        if(!taskRepository.existsById(id)){
             throw new NoSuchElementException();
         }
         if(task.getId() != null){
@@ -80,26 +73,22 @@ public class TaskService {
                 id,
                 task.getCreatorId(),
                 task.getAssignedUserId(),
-                taskMap.get(id).getStatus(),
+                taskRepository.findById(id).get().getStatus(),
                 task.getCreateDateTime(),
                 task.getDeadlineDate(),
                 task.getPriority()
         );
 
-        taskMap.put(id, newTask);
-
-        return newTask;
+        return taskRepository.save(newTask);
     }
 
     public Task deleteTask(Long id){
-        if(!taskMap.containsKey(id)){
+        if(!taskRepository.existsById(id)){
             throw new NoSuchElementException();
         }
-        var task = taskMap.get(id);
-        taskMap.remove(id);
-
+        Task task = taskRepository.findById(id).get();
+        taskRepository.deleteById(id);
         return task;
-
     }
 
 }
