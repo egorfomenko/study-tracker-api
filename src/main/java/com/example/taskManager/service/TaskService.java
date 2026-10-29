@@ -3,7 +3,9 @@ package com.example.taskManager.service;
 import com.example.taskManager.dto.TaskRequestDto;
 import com.example.taskManager.dto.TaskResponseDto;
 import com.example.taskManager.enums.TaskStatus;
+import com.example.taskManager.model.Tag;
 import com.example.taskManager.model.Task;
+import com.example.taskManager.repository.TagRepository;
 import com.example.taskManager.repository.TaskRepository;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.LoggerFactory;
@@ -19,10 +21,13 @@ import org.slf4j.Logger;
 public class TaskService {
     private static final Logger log = LoggerFactory.getLogger(TaskService.class);
 
+    private final TagRepository tagRepository;
     private final TaskRepository taskRepository;
 
-    public TaskService(TaskRepository taskRepository){
+    public TaskService(TaskRepository taskRepository, TagRepository tagRepository){
         this.taskRepository = taskRepository;
+        this.tagRepository = tagRepository;
+
     }
 
 
@@ -42,8 +47,16 @@ public class TaskService {
     }
 
     //Создание Задачи и сохранение в базу данных
-    public TaskResponseDto createTask(TaskRequestDto task){
-        Task taskEntity = toEntity(task);
+    @Transactional
+    public TaskResponseDto createTask(TaskRequestDto request){
+        Tag tag = null;
+
+        if(request.tagId() != null){
+            tag = tagRepository.findById(request.tagId()).orElseThrow(() -> new NoSuchElementException("Tag not found with id: " + request.tagId()));
+        }
+
+        Task taskEntity = toEntity(request, tag);
+
         return toResponse(taskRepository.save(taskEntity));
     }
 
@@ -51,15 +64,23 @@ public class TaskService {
     @Transactional
     public TaskResponseDto updateTask(Long id, TaskRequestDto requestDto){
         Task entity = taskRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Task not found with id: " + id));
+
+        Tag tag = null;
+        if(requestDto.tagId() != null){
+            tag = tagRepository.findById(requestDto.tagId()).orElseThrow(() -> new NoSuchElementException("Tag not found with id" + requestDto.tagId()));
+        }
+
         entity.setCreatorId(requestDto.creatorId());
         entity.setAssignedUserId(requestDto.assignedUserId());
         entity.setDeadlineDate(requestDto.deadlineDate());
         entity.setPriority(requestDto.priority());
+        entity.setTag(tag);
 
         return toResponse(entity);
     }
 
     //Удаление задачи
+    @Transactional
     public TaskResponseDto deleteTask(Long id){
 
         Task task = taskRepository.findById(id).orElseThrow(() -> new NoSuchElementException(
@@ -71,7 +92,7 @@ public class TaskService {
 
 
     // Вспомогательные методы для DTO
-    private Task toEntity(TaskRequestDto request){
+    private Task toEntity(TaskRequestDto request, Tag tag){
         return new Task(
                 null,
                 request.creatorId(),
@@ -79,11 +100,15 @@ public class TaskService {
                 TaskStatus.CREATED,
                 LocalDate.now(),
                 request.deadlineDate(),
-                request.priority()
+                request.priority(),
+                tag
         );
     }
 
     private TaskResponseDto toResponse(Task task){
+        Long tagId = (task.getTag() != null) ? task.getTag().getId() : null;
+        String tagName = (task.getTag() != null) ? task.getTag().getName() : null;
+
         return new TaskResponseDto(
                 task.getId(),
                 task.getCreatorId(),
@@ -91,7 +116,9 @@ public class TaskService {
                 task.getStatus(),
                 task.getCreateDate(),
                 task.getDeadlineDate(),
-                task.getPriority()
+                task.getPriority(),
+                tagId,
+                tagName
         );
     }
 

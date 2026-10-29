@@ -8,6 +8,7 @@ public record TaskRequestDto(
         Long creatorId,
         Long assignedUserId,
         LocalDate deadlineDate,
-        TaskPriority priority
+        TaskPriority priority,
+        Long tagId
 ) {
 }
