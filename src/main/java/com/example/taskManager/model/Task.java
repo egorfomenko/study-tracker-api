@@ -35,8 +35,12 @@ public class Task{
     @Enumerated(EnumType.STRING)
     private TaskPriority priority;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tag_id")
+    private Tag tag;
+
     public Task(Long id ,Long creatorId, Long assignedUserId, TaskStatus status,
-                LocalDate createDate, LocalDate deadlineDate, TaskPriority priority) {
+                LocalDate createDate, LocalDate deadlineDate, TaskPriority priority, Tag tag) {
         this.id = id;
         this.creatorId = creatorId;
         this.assignedUserId = assignedUserId;
@@ -44,6 +48,7 @@ public class Task{
         this.createDate = createDate;
         this.deadlineDate = deadlineDate;
         this.priority = priority;
+        this.tag = tag;
     }
     public Task(){}
 
@@ -101,5 +106,13 @@ public class Task{
 
     public void setPriority(TaskPriority priority) {
         this.priority = priority;
+    }
+
+    public Tag getTag() {
+        return tag;
+    }
+
+    public void setTag(Tag tag) {
+        this.tag = tag;
     }
 }

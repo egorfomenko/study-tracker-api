@@ -12,6 +12,8 @@ public record TaskResponseDto(
         TaskStatus status,
         LocalDate createDate,
         LocalDate deadlineDate,
-        TaskPriority priority
+        TaskPriority priority,
+        Long tagId,
+        String tagName
 ) {
 }
