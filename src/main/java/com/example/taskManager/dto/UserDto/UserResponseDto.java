@@ -1,4 +1,4 @@
-package com.example.taskManager.dto;
+package com.example.taskManager.dto.UserDto;
 
 public record UserResponseDto (
         Long id,

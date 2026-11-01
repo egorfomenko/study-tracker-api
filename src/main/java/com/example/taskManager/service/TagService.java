@@ -1,7 +1,8 @@
 package com.example.taskManager.service;
 
-import com.example.taskManager.dto.TagRequestDto;
-import com.example.taskManager.dto.TagResponseDto;
+import com.example.taskManager.dto.TagDto.TagCreateRequestDto;
+import com.example.taskManager.dto.TagDto.TagResponseDto;
+import com.example.taskManager.dto.TagDto.TagUpdateRequestDto;
 import com.example.taskManager.model.Tag;
 import com.example.taskManager.model.User;
 import com.example.taskManager.repository.TagRepository;
@@ -43,14 +44,17 @@ public class TagService {
     }
 
     @Transactional
-    public TagResponseDto createTag(TagRequestDto request){
-        User user = null;
-
-        if(request.userId() != null){
-            user = userRepository.findById(request.userId()).orElseThrow(
-                    () -> new NoSuchElementException("")
-            );
+    public TagResponseDto createTag(TagCreateRequestDto request){
+        if(request.userId() == null){
+            throw new IllegalArgumentException("userId is required");
         }
+
+        User user = userRepository.findById(request.userId()).orElseThrow(
+                    () -> new NoSuchElementException(
+                            "User not found with id: " + request.userId()
+                    )
+            );
+
 
         Tag tag = toEntity(request, user);
         tag = tagRepository.save(tag);
@@ -59,20 +63,13 @@ public class TagService {
     }
 
     @Transactional
-    public TagResponseDto updateTag(Long id, TagRequestDto request){
+    public TagResponseDto updateTag(Long id, TagUpdateRequestDto request){
         Tag tag = tagRepository.findById(id).orElseThrow(
                 () -> new NoSuchElementException()
         );
 
-        User user = null;
-
-        if(request.userId() != null){
-            user = userRepository.findById(request.userId()).orElseThrow(() -> new NoSuchElementException());
-        }
-
         tag.setName(request.name());
         tag.setColorHex(request.colorHex());
-        tag.setUser(user);
 
         return toResponse(tag);
     }
@@ -98,7 +95,7 @@ public class TagService {
         );
     }
 
-    private Tag toEntity(TagRequestDto tagRequestDto, User user){
+    private Tag toEntity(TagCreateRequestDto tagRequestDto, User user){
 
         return new Tag(
                 null,

@@ -1,4 +1,4 @@
-package com.example.taskManager.dto;
+package com.example.taskManager.dto.TaskDto;
 
 import com.example.taskManager.enums.TaskPriority;
 import com.example.taskManager.enums.TaskStatus;
@@ -7,8 +7,7 @@ import java.time.LocalDate;
 
 public record TaskResponseDto(
         Long id,
-        Long creatorId,
-        Long assignedUserId,
+        Long userId,
         TaskStatus status,
         LocalDate createDate,
         LocalDate deadlineDate,

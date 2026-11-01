@@ -1,8 +1,10 @@
 package com.example.taskManager.controller;
 
-import com.example.taskManager.dto.TagRequestDto;
-import com.example.taskManager.dto.TagResponseDto;
+import com.example.taskManager.dto.TagDto.TagCreateRequestDto;
+import com.example.taskManager.dto.TagDto.TagResponseDto;
+import com.example.taskManager.dto.TagDto.TagUpdateRequestDto;
 import com.example.taskManager.service.TagService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,15 +34,15 @@ public class TagController {
 
     @PostMapping
     public ResponseEntity<TagResponseDto> createTag(
-            @RequestBody TagRequestDto tag
+           @Valid @RequestBody TagCreateRequestDto tag
     ){
-        return ResponseEntity.status(200).body(tagService.createTag(tag));
+        return ResponseEntity.status(201).body(tagService.createTag(tag));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<TagResponseDto> updateTag(
             @PathVariable("id") Long id,
-            @RequestBody TagRequestDto request
+            @Valid @RequestBody TagUpdateRequestDto request
     ){
         return ResponseEntity.status(200).body(tagService.updateTag(id, request));
     }

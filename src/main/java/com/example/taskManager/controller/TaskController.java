@@ -1,7 +1,7 @@
 package com.example.taskManager.controller;
 
-import com.example.taskManager.dto.TaskRequestDto;
-import com.example.taskManager.dto.TaskResponseDto;
+import com.example.taskManager.dto.TaskDto.TaskRequestDto;
+import com.example.taskManager.dto.TaskDto.TaskResponseDto;
 import com.example.taskManager.service.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

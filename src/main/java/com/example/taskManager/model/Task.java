@@ -17,11 +17,10 @@ public class Task{
     @Column(name = "task_id")
     private Long id;
 
-    @Column(name = "creator_id")
-    private Long creatorId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    @Column(name = "assigned_user_id")
-    private Long assignedUserId;
 
     @Enumerated(EnumType.STRING)
     private TaskStatus status;
@@ -35,15 +34,14 @@ public class Task{
     @Enumerated(EnumType.STRING)
     private TaskPriority priority;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tag_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "tag_id", nullable = false)
     private Tag tag;
 
-    public Task(Long id ,Long creatorId, Long assignedUserId, TaskStatus status,
+    public Task(Long id ,User user, TaskStatus status,
                 LocalDate createDate, LocalDate deadlineDate, TaskPriority priority, Tag tag) {
         this.id = id;
-        this.creatorId = creatorId;
-        this.assignedUserId = assignedUserId;
+        this.user = user;
         this.status = status;
         this.createDate = createDate;
         this.deadlineDate = deadlineDate;
@@ -58,22 +56,6 @@ public class Task{
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public Long getCreatorId() {
-        return creatorId;
-    }
-
-    public void setCreatorId(Long creatorId) {
-        this.creatorId = creatorId;
-    }
-
-    public Long getAssignedUserId() {
-        return assignedUserId;
-    }
-
-    public void setAssignedUserId(Long assignedUserId) {
-        this.assignedUserId = assignedUserId;
     }
 
     public TaskStatus getStatus() {
@@ -114,5 +96,13 @@ public class Task{
 
     public void setTag(Tag tag) {
         this.tag = tag;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }

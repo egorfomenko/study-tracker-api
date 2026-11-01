@@ -1,7 +1,7 @@
 package com.example.taskManager.service;
 
-import com.example.taskManager.dto.UserRequestDto;
-import com.example.taskManager.dto.UserResponseDto;
+import com.example.taskManager.dto.UserDto.UserRequestDto;
+import com.example.taskManager.dto.UserDto.UserResponseDto;
 import com.example.taskManager.model.User;
 import com.example.taskManager.repository.UserRepository;
 import org.springframework.transaction.annotation.Transactional;

@@ -1,7 +1,7 @@
 package com.example.taskManager.controller;
 
-import com.example.taskManager.dto.UserRequestDto;
-import com.example.taskManager.dto.UserResponseDto;
+import com.example.taskManager.dto.UserDto.UserRequestDto;
+import com.example.taskManager.dto.UserDto.UserResponseDto;
 import com.example.taskManager.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
