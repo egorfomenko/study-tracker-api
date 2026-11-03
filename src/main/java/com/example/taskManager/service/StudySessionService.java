@@ -49,6 +49,7 @@ public class StudySessionService {
             );
 
 
+
         Optional<StudySession> activeSession = studySessionRepository.
                 findByUserIdAndStatus(requestDto.userId(), SessionStatus.ACTIVE);
 
@@ -69,9 +70,26 @@ public class StudySessionService {
         Task task = null;
 
         if(requestDto.taskId() != null){
+
             task = taskRepository.findById(requestDto.taskId()).orElseThrow(
                     () -> new NoSuchElementException("Task not found with id" + requestDto.taskId())
             );
+            //Проверка тегов на совпадение (чтобы нельзя было запустить tag другого пользователя)
+            Long userIdInTag = (tag.getUser() != null) ? tag.getUser().getId() : null;
+            Long userIdInTask = (task.getUser() != null) ? task.getUser().getId() : null;
+
+            if(userIdInTask == null || userIdInTag == null || !userIdInTag.equals(userIdInTask)){
+                throw new IllegalArgumentException("Task does not belong to the user");
+            }
+
+
+            Long tagId = tag.getId();
+            Long tagIdInTheTask = (task.getTag() != null) ? task.getTag().getId() : null;
+
+
+            if(tagId == null || tagIdInTheTask == null || !tagId.equals(tagIdInTheTask)){
+                throw new IllegalArgumentException("Task does not belong to the selected tag");
+            }
         }
 
         StudySession session = new StudySession(

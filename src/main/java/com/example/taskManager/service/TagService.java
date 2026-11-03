@@ -5,6 +5,7 @@ import com.example.taskManager.dto.TagDto.TagResponseDto;
 import com.example.taskManager.dto.TagDto.TagUpdateRequestDto;
 import com.example.taskManager.model.Tag;
 import com.example.taskManager.model.User;
+import com.example.taskManager.repository.StudySessionRepository;
 import com.example.taskManager.repository.TagRepository;
 import com.example.taskManager.repository.TaskRepository;
 import com.example.taskManager.repository.UserRepository;
@@ -19,11 +20,13 @@ public class TagService {
     private final TaskRepository taskRepository;
     private final TagRepository tagRepository;
     private final UserRepository userRepository;
+    private final StudySessionRepository studySessionRepository;
 
-    public TagService(TaskRepository taskRepository, TagRepository tagRepository, UserRepository userRepository) {
+    public TagService(TaskRepository taskRepository, TagRepository tagRepository, UserRepository userRepository, StudySessionRepository studySessionRepository) {
         this.taskRepository = taskRepository;
         this.tagRepository = tagRepository;
         this.userRepository = userRepository;
+        this.studySessionRepository = studySessionRepository;
     }
 
     public List<TagResponseDto> getAllTags(){
@@ -41,6 +44,21 @@ public class TagService {
         );
 
         return toResponse(tag);
+    }
+
+    public List<TagResponseDto> getAllTagsByUserId(Long id) {
+        if(id == null){
+            throw new IllegalStateException("userId is required");
+        }
+        userRepository.findById(id).orElseThrow(
+                () -> new NoSuchElementException("User not found with id" + id));
+
+
+        List<Tag> tags = tagRepository.findAllByUserId(id);
+        List<TagResponseDto> tagsResponse = tags.stream().map(
+                this::toResponse
+        ).toList();
+        return tagsResponse;
     }
 
     @Transactional
@@ -76,10 +94,13 @@ public class TagService {
 
     @Transactional
     public TagResponseDto deleteTag(Long id){
-        Tag tag = tagRepository.findById(id).orElseThrow(() -> new NoSuchElementException(""));
-        taskRepository.clearTagReferences(id);
+        Tag tag = tagRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Tag not found with id: " + id));
+        if(taskRepository.existsByTagId(tag.getId()) || studySessionRepository.existsByTagId(tag.getId())){
+            throw new IllegalStateException("Can't delete this tag. It has connections");
+        }
         tagRepository.delete(tag);
         return toResponse(tag);
+
     }
 
 

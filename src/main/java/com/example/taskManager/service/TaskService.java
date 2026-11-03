@@ -1,11 +1,13 @@
 package com.example.taskManager.service;
 
-import com.example.taskManager.dto.TaskDto.TaskRequestDto;
+import com.example.taskManager.dto.TaskDto.TaskCreateRequestDto;
 import com.example.taskManager.dto.TaskDto.TaskResponseDto;
+import com.example.taskManager.dto.TaskDto.TaskUpdateRequestDto;
 import com.example.taskManager.enums.TaskStatus;
 import com.example.taskManager.model.Tag;
 import com.example.taskManager.model.Task;
 import com.example.taskManager.model.User;
+import com.example.taskManager.repository.StudySessionRepository;
 import com.example.taskManager.repository.TagRepository;
 import com.example.taskManager.repository.TaskRepository;
 import com.example.taskManager.repository.UserRepository;
@@ -26,12 +28,14 @@ public class TaskService {
     private final TagRepository tagRepository;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
+    private final StudySessionRepository studySessionRepository;
 
-    public TaskService(TaskRepository taskRepository, TagRepository tagRepository, UserRepository userRepository){
+    public TaskService(TaskRepository taskRepository, TagRepository tagRepository, UserRepository userRepository, StudySessionRepository studySessionRepository){
         this.taskRepository = taskRepository;
         this.tagRepository = tagRepository;
 
         this.userRepository = userRepository;
+        this.studySessionRepository = studySessionRepository;
     }
 
 
@@ -52,16 +56,24 @@ public class TaskService {
 
     //Создание Задачи и сохранение в базу данных
     @Transactional
-    public TaskResponseDto createTask(TaskRequestDto request){
+    public TaskResponseDto createTask(TaskCreateRequestDto request){
         if(request.tagId() == null){
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("tagId is required");
+        }
+        if(request.userId() == null){
+            throw new IllegalArgumentException("userId is required");
         }
 
         Tag tag = tagRepository.findById(request.tagId()).orElseThrow(() -> new NoSuchElementException("Tag not found with id: " + request.tagId()));
 
-        if(request.userId() == null){
-            throw new IllegalArgumentException();
+        Long userId = (tag.getUser() != null) ? tag.getUser().getId() : null;
+
+        if (userId == null || !userId.equals(request.userId())) {
+            throw new IllegalArgumentException(
+                    "Tag does not belong to the user"
+            );
         }
+
         User user = userRepository.findById(request.userId()).orElseThrow(
                 () -> new NoSuchElementException("User not found with id" + request.userId())
         );
@@ -73,23 +85,22 @@ public class TaskService {
 
     //Обновление задачи.
     @Transactional
-    public TaskResponseDto updateTask(Long id, TaskRequestDto requestDto){
+    public TaskResponseDto updateTask(Long id, TaskUpdateRequestDto requestDto){
         Task entity = taskRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Task not found with id: " + id));
 
         if(requestDto.tagId() == null){
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("tagId is required");
         }
         Tag tag = tagRepository.findById(requestDto.tagId()).orElseThrow(() -> new NoSuchElementException("Tag not found with id" + requestDto.tagId()));
 
-        if(requestDto.userId() == null){
-            throw new IllegalArgumentException();
+        Long userIdInTheTag = (tag.getUser() != null) ? tag.getUser().getId() : null;
+        Long userIdInTheTask = (entity.getUser() != null) ? entity.getUser().getId() : null;
+
+        if(userIdInTheTask == null || userIdInTheTag == null || !userIdInTheTask.equals(userIdInTheTag)){
+            throw new IllegalArgumentException("Tag does not belong to the user");
         }
-        User user = userRepository.findById(requestDto.userId()).orElseThrow(
-                () -> new NoSuchElementException("User not found with id" + requestDto.userId())
-        );
 
 
-        entity.setUser(user);
         entity.setDeadlineDate(requestDto.deadlineDate());
         entity.setPriority(requestDto.priority());
         entity.setTag(tag);
@@ -104,13 +115,18 @@ public class TaskService {
         Task task = taskRepository.findById(id).orElseThrow(() -> new NoSuchElementException(
                 "Task not found with id: " + id
         ));
+
+        if(studySessionRepository.existsByTaskId(task.getId())){
+            throw new IllegalStateException("Task is used by study sessions");
+        }
+
         taskRepository.delete(task);
         return toResponse(task);
     }
 
 
     // Вспомогательные методы для DTO
-    private Task toEntity(TaskRequestDto request, Tag tag, User user){
+    private Task toEntity(TaskCreateRequestDto request, Tag tag, User user){
         return new Task(
                 null,
                 user,

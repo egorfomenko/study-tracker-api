@@ -1,7 +1,8 @@
 package com.example.taskManager.controller;
 
-import com.example.taskManager.dto.TaskDto.TaskRequestDto;
+import com.example.taskManager.dto.TaskDto.TaskCreateRequestDto;
 import com.example.taskManager.dto.TaskDto.TaskResponseDto;
+import com.example.taskManager.dto.TaskDto.TaskUpdateRequestDto;
 import com.example.taskManager.service.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -36,7 +37,7 @@ public class TaskController {
 
     @PostMapping
     public ResponseEntity<TaskResponseDto> createTask(
-           @RequestBody TaskRequestDto task
+           @RequestBody TaskCreateRequestDto task
     ){
         return ResponseEntity.status(201).body(taskService.createTask(task));
     }
@@ -44,7 +45,7 @@ public class TaskController {
     @PutMapping("/{id}")
     public ResponseEntity<TaskResponseDto> updateTask(
             @PathVariable Long id,
-            @RequestBody TaskRequestDto task
+            @RequestBody TaskUpdateRequestDto task
     ){
         return ResponseEntity.status(200).body(taskService.updateTask(id, task));
     }

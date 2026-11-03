@@ -1,7 +1,10 @@
 package com.example.taskManager.controller;
 
+import com.example.taskManager.dto.TagDto.TagResponseDto;
 import com.example.taskManager.dto.UserDto.UserRequestDto;
 import com.example.taskManager.dto.UserDto.UserResponseDto;
+import com.example.taskManager.model.Tag;
+import com.example.taskManager.service.TagService;
 import com.example.taskManager.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,9 +15,11 @@ import java.util.List;
 @RequestMapping("/users")
 public class UserController {
     private final UserService userService;
+    private final TagService tagService;
 
-    public UserController(UserService userService){
+    public UserController(UserService userService, TagService tagService){
         this.userService = userService;
+        this.tagService = tagService;
     }
 
     @GetMapping("/{id}")
@@ -27,6 +32,13 @@ public class UserController {
     @GetMapping
     public ResponseEntity<List<UserResponseDto>> getAllUsers(){
         return ResponseEntity.status(200).body(userService.getAllUsers());
+    }
+
+    @GetMapping("/{id}/tags")
+    public ResponseEntity<List<TagResponseDto>> getAllTagsByUserId(
+            @PathVariable Long id
+    ){
+        return ResponseEntity.status(200).body(tagService.getAllTagsByUserId(id));
     }
 
     @PostMapping

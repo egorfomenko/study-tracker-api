@@ -8,4 +8,9 @@ import java.util.Optional;
 
 public interface StudySessionRepository extends JpaRepository<StudySession, Long> {
     Optional<StudySession> findByUserIdAndStatus(Long userId, SessionStatus status);
+
+
+    boolean existsByTagId(Long tagId);
+
+    boolean existsByTaskId(Long taskId);
 }

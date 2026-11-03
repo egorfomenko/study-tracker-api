@@ -1,4 +1,14 @@
 package com.example.taskManager.dto.TaskDto;
 
-public class TaskCreateRequestDto {
+import com.example.taskManager.enums.TaskPriority;
+
+import java.time.LocalDate;
+
+
+public record TaskCreateRequestDto (
+        Long userId,
+        LocalDate deadlineDate,
+        TaskPriority priority,
+        Long tagId
+) {
 }

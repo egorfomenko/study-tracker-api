@@ -9,4 +9,6 @@ import java.util.List;
 public interface TagRepository extends JpaRepository<Tag, Long> {
     @Query("SELECT t FROM Tag t LEFT JOIN FETCH t.user")
     List<Tag> findAll();
+
+    List<Tag> findAllByUserId(Long userId);
 }
