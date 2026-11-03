@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -106,7 +107,20 @@ public class StudySessionService {
         return toResponse(studySessionRepository.save(session));
 
     }
+    @Transactional(readOnly = true)
+    public List<StudySessionResponseDto> getAllSessionsByUserId(Long id){
+        if(id == null){
+            throw new IllegalArgumentException("userId is required");
+        }
+        userRepository.findById(id).orElseThrow(
+                () -> new NoSuchElementException("User not found with id" + id)
+        );
 
+        List<StudySession> list = studySessionRepository.findAllByUserIdOrderByStartTimeDesc(id);
+        List<StudySessionResponseDto> listResponse = list.stream()
+                .map(this::toResponse).toList();
+        return listResponse;
+    }
 
     @Transactional
     public StudySessionResponseDto endStudySession(Long sessionId){

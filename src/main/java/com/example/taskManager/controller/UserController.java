@@ -1,9 +1,10 @@
 package com.example.taskManager.controller;
 
+import com.example.taskManager.dto.StudySessionDto.StudySessionResponseDto;
 import com.example.taskManager.dto.TagDto.TagResponseDto;
 import com.example.taskManager.dto.UserDto.UserRequestDto;
 import com.example.taskManager.dto.UserDto.UserResponseDto;
-import com.example.taskManager.model.Tag;
+import com.example.taskManager.service.StudySessionService;
 import com.example.taskManager.service.TagService;
 import com.example.taskManager.service.UserService;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +17,12 @@ import java.util.List;
 public class UserController {
     private final UserService userService;
     private final TagService tagService;
+    private final StudySessionService studySessionService;
 
-    public UserController(UserService userService, TagService tagService){
+    public UserController(UserService userService, TagService tagService, StudySessionService studySessionService){
         this.userService = userService;
         this.tagService = tagService;
+        this.studySessionService = studySessionService;
     }
 
     @GetMapping("/{id}")
@@ -39,6 +42,13 @@ public class UserController {
             @PathVariable Long id
     ){
         return ResponseEntity.status(200).body(tagService.getAllTagsByUserId(id));
+    }
+
+    @GetMapping("/{id}/sessions")
+    public ResponseEntity<List<StudySessionResponseDto>> getAllSessionsByUserId(
+            @PathVariable Long id
+    ){
+        return ResponseEntity.status(200).body(studySessionService.getAllSessionsByUserId(id));
     }
 
     @PostMapping
