@@ -3,6 +3,7 @@ package com.example.taskManager.model;
 import com.example.taskManager.enums.TaskPriority;
 import com.example.taskManager.enums.TaskStatus;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 
 
 import java.time.LocalDate;
@@ -16,6 +17,10 @@ public class Task{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "task_id")
     private Long id;
+
+    @Column(name = "title", nullable = false)
+    @NotNull
+    private String title;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
@@ -38,10 +43,11 @@ public class Task{
     @JoinColumn(name = "tag_id", nullable = false)
     private Tag tag;
 
-    public Task(Long id ,User user, TaskStatus status,
+    public Task(Long id ,User user,String title ,TaskStatus status,
                 LocalDate createDate, LocalDate deadlineDate, TaskPriority priority, Tag tag) {
         this.id = id;
         this.user = user;
+        this.title = title;
         this.status = status;
         this.createDate = createDate;
         this.deadlineDate = deadlineDate;
@@ -104,5 +110,12 @@ public class Task{
 
     public void setUser(User user) {
         this.user = user;
+    }
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
     }
 }

@@ -104,6 +104,8 @@ public class TaskService {
         entity.setDeadlineDate(requestDto.deadlineDate());
         entity.setPriority(requestDto.priority());
         entity.setTag(tag);
+        entity.setStatus(requestDto.status());
+        entity.setTitle(requestDto.title());
 
         return toResponse(entity);
     }
@@ -130,6 +132,7 @@ public class TaskService {
         return new Task(
                 null,
                 user,
+                request.title(),
                 TaskStatus.CREATED,
                 LocalDate.now(),
                 request.deadlineDate(),
@@ -145,6 +148,7 @@ public class TaskService {
         return new TaskResponseDto(
                 task.getId(),
                 userId,
+                task.getTitle(),
                 task.getStatus(),
                 task.getCreateDate(),
                 task.getDeadlineDate(),

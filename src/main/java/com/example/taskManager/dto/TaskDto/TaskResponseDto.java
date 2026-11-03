@@ -8,6 +8,7 @@ import java.time.LocalDate;
 public record TaskResponseDto(
         Long id,
         Long userId,
+        String title,
         TaskStatus status,
         LocalDate createDate,
         LocalDate deadlineDate,
