@@ -7,6 +7,7 @@ import com.example.taskManager.dto.UserDto.UserResponseDto;
 import com.example.taskManager.service.StudySessionService;
 import com.example.taskManager.service.TagService;
 import com.example.taskManager.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,7 +54,7 @@ public class UserController {
 
     @PostMapping
     public ResponseEntity<UserResponseDto> createUser(
-            @RequestBody UserRequestDto user
+            @RequestBody @Valid UserRequestDto user
     ){
         return ResponseEntity.status(201).body(userService.createUser(user));
     }
@@ -61,7 +62,7 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<UserResponseDto> updateUser(
             @PathVariable("id") Long id,
-            @RequestBody UserRequestDto userRequestDto
+            @RequestBody @Valid UserRequestDto userRequestDto
     ){
         return ResponseEntity.status(200).body(userService.updateUser(id, userRequestDto));
     }

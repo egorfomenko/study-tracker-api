@@ -4,6 +4,7 @@ import com.example.taskManager.enums.TaskPriority;
 import com.example.taskManager.enums.TaskStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
 import java.time.LocalDate;
 
@@ -13,6 +14,6 @@ public record TaskUpdateRequestDto (
         @NotNull TaskStatus status,
         LocalDate deadlineDate,
         TaskPriority priority,
-        Long tagId
+        @NotNull @Positive Long tagId
 ){
 }

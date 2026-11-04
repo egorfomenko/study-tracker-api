@@ -3,6 +3,7 @@ package com.example.taskManager.controller;
 import com.example.taskManager.dto.StudySessionDto.StudySessionRequestDto;
 import com.example.taskManager.dto.StudySessionDto.StudySessionResponseDto;
 import com.example.taskManager.service.StudySessionService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,7 +18,7 @@ public class StudySessionController {
 
     @PostMapping("/start")
     public ResponseEntity<StudySessionResponseDto> startSession (
-            @RequestBody StudySessionRequestDto requestDto
+            @RequestBody @Valid StudySessionRequestDto requestDto
             )
     {
         return ResponseEntity.status(201).body(studySessionService.startStudySession(requestDto));

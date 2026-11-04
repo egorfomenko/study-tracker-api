@@ -3,6 +3,7 @@ package com.example.taskManager.model;
 
 import com.example.taskManager.enums.SessionStatus;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
 
