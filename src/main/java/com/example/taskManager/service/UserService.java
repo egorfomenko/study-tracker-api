@@ -3,6 +3,7 @@ package com.example.taskManager.service;
 import com.example.taskManager.dto.TagDto.TagResponseDto;
 import com.example.taskManager.dto.UserDto.UserRequestDto;
 import com.example.taskManager.dto.UserDto.UserResponseDto;
+import com.example.taskManager.exception.UserNotFoundException;
 import com.example.taskManager.model.Tag;
 import com.example.taskManager.model.User;
 import com.example.taskManager.repository.TagRepository;
@@ -24,7 +25,7 @@ public class UserService {
     }
 
     public UserResponseDto getUserById(Long id){
-        User user = userRepository.findById(id).orElseThrow(() -> new NoSuchElementException("User not found with id: " + id));
+        User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
         return toResponse(user);
     }
 
@@ -43,14 +44,14 @@ public class UserService {
     }
     @Transactional
     public UserResponseDto updateUser(Long id, UserRequestDto userRequestDto){
-        User user = userRepository.findById(id).orElseThrow(() -> new NoSuchElementException("User not found with id: " + id));
+        User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
         user.setEmail(userRequestDto.email());
         user.setName(userRequestDto.name());
         return toResponse(user);
     }
 
     public UserResponseDto deleteUser(Long id){
-        User user = userRepository.findById(id).orElseThrow(() -> new NoSuchElementException("User not found with id: " + id));
+        User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
         userRepository.delete(user);
         return toResponse(user);
     }

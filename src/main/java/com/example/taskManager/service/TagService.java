@@ -3,6 +3,9 @@ package com.example.taskManager.service;
 import com.example.taskManager.dto.TagDto.TagCreateRequestDto;
 import com.example.taskManager.dto.TagDto.TagResponseDto;
 import com.example.taskManager.dto.TagDto.TagUpdateRequestDto;
+import com.example.taskManager.exception.TagNotFoundException;
+import com.example.taskManager.exception.TaskNotFoundException;
+import com.example.taskManager.exception.UserNotFoundException;
 import com.example.taskManager.model.Tag;
 import com.example.taskManager.model.User;
 import com.example.taskManager.repository.StudySessionRepository;
@@ -40,7 +43,7 @@ public class TagService {
 
     public TagResponseDto getTagById(Long id){
         Tag tag = tagRepository.findById(id).orElseThrow(
-                () -> new NoSuchElementException("")
+                () -> new TagNotFoundException("Tag not found with id" + id)
         );
 
         return toResponse(tag);
@@ -51,7 +54,7 @@ public class TagService {
             throw new IllegalStateException("userId is required");
         }
         userRepository.findById(id).orElseThrow(
-                () -> new NoSuchElementException("User not found with id" + id));
+                () -> new UserNotFoundException("User not found with id" + id));
 
 
         List<Tag> tags = tagRepository.findAllByUserId(id);
@@ -68,7 +71,7 @@ public class TagService {
         }
 
         User user = userRepository.findById(request.userId()).orElseThrow(
-                    () -> new NoSuchElementException(
+                    () -> new UserNotFoundException(
                             "User not found with id: " + request.userId()
                     )
             );
@@ -83,7 +86,7 @@ public class TagService {
     @Transactional
     public TagResponseDto updateTag(Long id, TagUpdateRequestDto request){
         Tag tag = tagRepository.findById(id).orElseThrow(
-                () -> new NoSuchElementException()
+                () -> new TagNotFoundException("Tag not found with id" + id)
         );
 
         tag.setName(request.name());
@@ -94,7 +97,7 @@ public class TagService {
 
     @Transactional
     public TagResponseDto deleteTag(Long id){
-        Tag tag = tagRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Tag not found with id: " + id));
+        Tag tag = tagRepository.findById(id).orElseThrow(() -> new TagNotFoundException("Tag not found with id: " + id));
         if(taskRepository.existsByTagId(tag.getId()) || studySessionRepository.existsByTagId(tag.getId())){
             throw new IllegalStateException("Can't delete this tag. It has connections");
         }

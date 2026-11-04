@@ -4,6 +4,9 @@ import com.example.taskManager.dto.TaskDto.TaskCreateRequestDto;
 import com.example.taskManager.dto.TaskDto.TaskResponseDto;
 import com.example.taskManager.dto.TaskDto.TaskUpdateRequestDto;
 import com.example.taskManager.enums.TaskStatus;
+import com.example.taskManager.exception.TagNotFoundException;
+import com.example.taskManager.exception.TaskNotFoundException;
+import com.example.taskManager.exception.UserNotFoundException;
 import com.example.taskManager.model.Tag;
 import com.example.taskManager.model.Task;
 import com.example.taskManager.model.User;
@@ -43,7 +46,7 @@ public class TaskService {
     public TaskResponseDto getTaskById(Long id){
         log.info("get task by id");
         return toResponse(taskRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Task not found with id: " + id)));
+                .orElseThrow(() -> new TaskNotFoundException("Task not found with id: " + id)));
 
     }
     //Получение всех задач
@@ -64,7 +67,7 @@ public class TaskService {
             throw new IllegalArgumentException("userId is required");
         }
 
-        Tag tag = tagRepository.findById(request.tagId()).orElseThrow(() -> new NoSuchElementException("Tag not found with id: " + request.tagId()));
+        Tag tag = tagRepository.findById(request.tagId()).orElseThrow(() -> new TagNotFoundException("Tag not found with id: " + request.tagId()));
 
         Long userId = (tag.getUser() != null) ? tag.getUser().getId() : null;
 
@@ -75,7 +78,7 @@ public class TaskService {
         }
 
         User user = userRepository.findById(request.userId()).orElseThrow(
-                () -> new NoSuchElementException("User not found with id" + request.userId())
+                () -> new UserNotFoundException("User not found with id" + request.userId())
         );
 
         Task taskEntity = toEntity(request, tag, user);
@@ -86,12 +89,12 @@ public class TaskService {
     //Обновление задачи.
     @Transactional
     public TaskResponseDto updateTask(Long id, TaskUpdateRequestDto requestDto){
-        Task entity = taskRepository.findById(id).orElseThrow(() -> new NoSuchElementException("Task not found with id: " + id));
+        Task entity = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException("Task not found with id: " + id));
 
         if(requestDto.tagId() == null){
             throw new IllegalArgumentException("tagId is required");
         }
-        Tag tag = tagRepository.findById(requestDto.tagId()).orElseThrow(() -> new NoSuchElementException("Tag not found with id" + requestDto.tagId()));
+        Tag tag = tagRepository.findById(requestDto.tagId()).orElseThrow(() -> new TaskNotFoundException("Tag not found with id" + requestDto.tagId()));
 
         Long userIdInTheTag = (tag.getUser() != null) ? tag.getUser().getId() : null;
         Long userIdInTheTask = (entity.getUser() != null) ? entity.getUser().getId() : null;
@@ -114,7 +117,7 @@ public class TaskService {
     @Transactional
     public TaskResponseDto deleteTask(Long id){
 
-        Task task = taskRepository.findById(id).orElseThrow(() -> new NoSuchElementException(
+        Task task = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException(
                 "Task not found with id: " + id
         ));
 
