@@ -4,6 +4,7 @@ import com.example.taskManager.dto.TaskDto.TaskCreateRequestDto;
 import com.example.taskManager.dto.TaskDto.TaskResponseDto;
 import com.example.taskManager.dto.TaskDto.TaskUpdateRequestDto;
 import com.example.taskManager.enums.TaskStatus;
+import com.example.taskManager.exception.InvalidRequestException;
 import com.example.taskManager.exception.TagNotFoundException;
 import com.example.taskManager.exception.TaskNotFoundException;
 import com.example.taskManager.exception.UserNotFoundException;
@@ -20,7 +21,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 import org.slf4j.Logger;
 
@@ -61,10 +61,10 @@ public class TaskService {
     @Transactional
     public TaskResponseDto createTask(TaskCreateRequestDto request){
         if(request.tagId() == null){
-            throw new IllegalArgumentException("tagId is required");
+            throw new InvalidRequestException("tagId is required");
         }
         if(request.userId() == null){
-            throw new IllegalArgumentException("userId is required");
+            throw new InvalidRequestException("userId is required");
         }
 
         Tag tag = tagRepository.findById(request.tagId()).orElseThrow(() -> new TagNotFoundException("Tag not found with id: " + request.tagId()));
@@ -72,7 +72,7 @@ public class TaskService {
         Long userId = (tag.getUser() != null) ? tag.getUser().getId() : null;
 
         if (userId == null || !userId.equals(request.userId())) {
-            throw new IllegalArgumentException(
+            throw new InvalidRequestException(
                     "Tag does not belong to the user"
             );
         }
@@ -92,7 +92,7 @@ public class TaskService {
         Task entity = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException("Task not found with id: " + id));
 
         if(requestDto.tagId() == null){
-            throw new IllegalArgumentException("tagId is required");
+            throw new InvalidRequestException("tagId is required");
         }
         Tag tag = tagRepository.findById(requestDto.tagId()).orElseThrow(() -> new TaskNotFoundException("Tag not found with id" + requestDto.tagId()));
 
@@ -100,7 +100,7 @@ public class TaskService {
         Long userIdInTheTask = (entity.getUser() != null) ? entity.getUser().getId() : null;
 
         if(userIdInTheTask == null || userIdInTheTag == null || !userIdInTheTask.equals(userIdInTheTag)){
-            throw new IllegalArgumentException("Tag does not belong to the user");
+            throw new InvalidRequestException("Tag does not belong to the user");
         }
 
 
@@ -122,7 +122,7 @@ public class TaskService {
         ));
 
         if(studySessionRepository.existsByTaskId(task.getId())){
-            throw new IllegalStateException("Task is used by study sessions");
+            throw new InvalidRequestException("Task is used by study sessions");
         }
 
         taskRepository.delete(task);

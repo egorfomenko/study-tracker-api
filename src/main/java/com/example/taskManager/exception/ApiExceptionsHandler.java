@@ -52,5 +52,27 @@ public class ApiExceptionsHandler {
         return problemDetail;
     }
 
+    @ExceptionHandler(InvalidRequestException.class)
+    public ProblemDetail invalidRequestException(InvalidRequestException invalidRequestException){
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                invalidRequestException.getMessage()
+        );
+        problemDetail.setTitle("В запросе имеются ошибки");
+
+        return problemDetail;
+    }
+
+    @ExceptionHandler(ConflictExсeption.class)
+    public ProblemDetail conflictExeption(ConflictExсeption conflictExeption){
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT,
+                conflictExeption.getMessage()
+        );
+        problemDetail.setTitle("Был вызван конфликт");
+
+        return problemDetail;
+    }
+
 
 }

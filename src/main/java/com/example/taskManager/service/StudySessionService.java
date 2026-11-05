@@ -4,10 +4,7 @@ package com.example.taskManager.service;
 import com.example.taskManager.dto.StudySessionDto.StudySessionRequestDto;
 import com.example.taskManager.dto.StudySessionDto.StudySessionResponseDto;
 import com.example.taskManager.enums.SessionStatus;
-import com.example.taskManager.exception.SessionNotFoundException;
-import com.example.taskManager.exception.TagNotFoundException;
-import com.example.taskManager.exception.TaskNotFoundException;
-import com.example.taskManager.exception.UserNotFoundException;
+import com.example.taskManager.exception.*;
 import com.example.taskManager.model.StudySession;
 import com.example.taskManager.model.Tag;
 import com.example.taskManager.model.Task;
@@ -42,10 +39,10 @@ public class StudySessionService {
     public StudySessionResponseDto startStudySession(StudySessionRequestDto requestDto){
 
         if (requestDto.userId() == null) {
-            throw new IllegalArgumentException("userId is required");
+            throw new InvalidRequestException("userId is required");
         }
         if (requestDto.tagId() == null) {
-            throw new IllegalArgumentException("tagId is required");
+            throw new InvalidRequestException("tagId is required");
         }
 
         User user = userRepository.findById(requestDto.userId()).orElseThrow(
@@ -58,7 +55,7 @@ public class StudySessionService {
                 findByUserIdAndStatus(requestDto.userId(), SessionStatus.ACTIVE);
 
         if(activeSession.isPresent()){
-            throw new IllegalStateException("User already has an active study session");
+            throw new ConflictExсeption("User already has an active study session");
         }
 
         Tag tag = tagRepository.findById(requestDto.tagId()).orElseThrow(
@@ -66,7 +63,7 @@ public class StudySessionService {
             );
         if (tag.getUser() == null
                 || !tag.getUser().getId().equals(user.getId())) {
-            throw new IllegalArgumentException(
+            throw new InvalidRequestException(
                     "Tag does not belong to the user"
             );
         }
@@ -83,7 +80,7 @@ public class StudySessionService {
             Long userIdInTask = (task.getUser() != null) ? task.getUser().getId() : null;
 
             if(userIdInTask == null || userIdInTag == null || !userIdInTag.equals(userIdInTask)){
-                throw new IllegalArgumentException("Task does not belong to the user");
+                throw new InvalidRequestException("Task does not belong to the user");
             }
 
 
@@ -92,7 +89,7 @@ public class StudySessionService {
 
 
             if(tagId == null || tagIdInTheTask == null || !tagId.equals(tagIdInTheTask)){
-                throw new IllegalArgumentException("Task does not belong to the selected tag");
+                    throw new InvalidRequestException("Task does not belong to the selected tag");
             }
         }
 
@@ -113,7 +110,7 @@ public class StudySessionService {
     @Transactional(readOnly = true)
     public List<StudySessionResponseDto> getAllSessionsByUserId(Long id){
         if(id == null){
-            throw new IllegalArgumentException("userId is required");
+            throw new InvalidRequestException("userId is required");
         }
         userRepository.findById(id).orElseThrow(
                 () -> new UserNotFoundException("User not found with id" + id)
@@ -133,7 +130,7 @@ public class StudySessionService {
                 );
 
         if (session.getStatus() != SessionStatus.ACTIVE) {
-            throw new IllegalStateException("Session is not active");
+            throw new ConflictExсeption("Session is not active");
         }
 
         session.setEndTime(LocalDateTime.now());

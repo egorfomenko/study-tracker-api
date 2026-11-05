@@ -3,6 +3,7 @@ package com.example.taskManager.service;
 import com.example.taskManager.dto.TagDto.TagCreateRequestDto;
 import com.example.taskManager.dto.TagDto.TagResponseDto;
 import com.example.taskManager.dto.TagDto.TagUpdateRequestDto;
+import com.example.taskManager.exception.InvalidRequestException;
 import com.example.taskManager.exception.TagNotFoundException;
 import com.example.taskManager.exception.TaskNotFoundException;
 import com.example.taskManager.exception.UserNotFoundException;
@@ -51,7 +52,7 @@ public class TagService {
 
     public List<TagResponseDto> getAllTagsByUserId(Long id) {
         if(id == null){
-            throw new IllegalStateException("userId is required");
+            throw new InvalidRequestException("userId is required");
         }
         userRepository.findById(id).orElseThrow(
                 () -> new UserNotFoundException("User not found with id" + id));
@@ -67,7 +68,7 @@ public class TagService {
     @Transactional
     public TagResponseDto createTag(TagCreateRequestDto request){
         if(request.userId() == null){
-            throw new IllegalArgumentException("userId is required");
+            throw new InvalidRequestException("userId is required");
         }
 
         User user = userRepository.findById(request.userId()).orElseThrow(
@@ -99,7 +100,7 @@ public class TagService {
     public TagResponseDto deleteTag(Long id){
         Tag tag = tagRepository.findById(id).orElseThrow(() -> new TagNotFoundException("Tag not found with id: " + id));
         if(taskRepository.existsByTagId(tag.getId()) || studySessionRepository.existsByTagId(tag.getId())){
-            throw new IllegalStateException("Can't delete this tag. It has connections");
+            throw new InvalidRequestException("Can't delete this tag. It has connections");
         }
         tagRepository.delete(tag);
         return toResponse(tag);
