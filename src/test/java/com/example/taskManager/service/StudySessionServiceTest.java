@@ -1,6 +1,7 @@
 package com.example.taskManager.service;
 
 import com.example.taskManager.dto.StudySessionDto.StudySessionRequestDto;
+import com.example.taskManager.dto.StudySessionDto.StudySessionResponseDto;
 import com.example.taskManager.enums.SessionStatus;
 import com.example.taskManager.exception.ConflictExсeption;
 import com.example.taskManager.model.StudySession;
@@ -9,22 +10,36 @@ import com.example.taskManager.repository.StudySessionRepository;
 import com.example.taskManager.repository.TagRepository;
 import com.example.taskManager.repository.TaskRepository;
 import com.example.taskManager.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 public class StudySessionServiceTest {
 
-    @Test
-    void StudtSessionServiceTest(){
-        UserRepository userRepository =  mock(UserRepository.class);
-        StudySessionRepository studySessionRepository = mock(StudySessionRepository.class);
-        TagRepository tagRepository = mock(TagRepository.class);
-        TaskRepository taskRepository = mock(TaskRepository.class);
+    private UserRepository userRepository;
+    private StudySessionRepository studySessionRepository;
+    private  TagRepository tagRepository;
+    private TaskRepository taskRepository;
 
+    @BeforeEach
+    void setUp(){
+        userRepository =  mock(UserRepository.class);
+        studySessionRepository = mock(StudySessionRepository.class);
+        tagRepository = mock(TagRepository.class);
+        taskRepository = mock(TaskRepository.class);
+    }
+
+
+    @Test
+    @DisplayName("Проверка запуска второго таймера, пока активен первый.")
+    void studySessionStartTest(){
 
         StudySessionService studySessionService = new StudySessionService(
                 userRepository,
@@ -62,6 +77,52 @@ public class StudySessionServiceTest {
         assertThrows(ConflictExсeption.class, () -> studySessionService.startStudySession(request));
 
         verify(studySessionRepository, never()).save(any(StudySession.class));
+    }
+
+
+    @Test
+    @DisplayName("Запрещает повторную остановку завершённой сессии")
+    void studySessionStopTest(){
+        StudySessionService studySessionService = new StudySessionService(
+                userRepository,
+                studySessionRepository,
+                tagRepository,
+                taskRepository
+        );
+
+        LocalDateTime startTime = LocalDateTime.of(2026, 11, 7, 10, 0);
+        LocalDateTime endTime = startTime.plusMinutes(30);
+        Long durationSeconds = 1800L;
+
+
+        StudySession session = new StudySession(
+                null,
+                null,
+                null,
+                null,
+                startTime,
+                endTime,
+                durationSeconds,
+                SessionStatus.COMPLETED
+        );
+
+
+
+        when(studySessionRepository.findById(1L))
+                .thenReturn(Optional.of(session));
+
+
+
+        assertThrows(ConflictExсeption.class, () -> studySessionService.endStudySession(1L));
+
+        assertEquals(endTime, session.getEndTime());
+        assertEquals(durationSeconds, session.getDurationSeconds());
+        assertEquals(SessionStatus.COMPLETED, session.getStatus());
 
     }
+
+
+
+
+
 }
