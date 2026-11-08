@@ -49,8 +49,6 @@ public class StudySessionService {
                     () -> new UserNotFoundException("User not found with id" + requestDto.userId())
             );
 
-
-
         Optional<StudySession> activeSession = studySessionRepository.
                 findByUserIdAndStatus(requestDto.userId(), SessionStatus.ACTIVE);
 

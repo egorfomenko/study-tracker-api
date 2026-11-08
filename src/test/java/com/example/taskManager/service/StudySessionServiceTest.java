@@ -6,14 +6,18 @@ import com.example.taskManager.enums.SessionStatus;
 import com.example.taskManager.exception.ConflictExсeption;
 import com.example.taskManager.exception.SessionNotFoundException;
 import com.example.taskManager.model.StudySession;
+import com.example.taskManager.model.Tag;
+import com.example.taskManager.model.Task;
 import com.example.taskManager.model.User;
 import com.example.taskManager.repository.StudySessionRepository;
 import com.example.taskManager.repository.TagRepository;
 import com.example.taskManager.repository.TaskRepository;
 import com.example.taskManager.repository.UserRepository;
+import org.checkerframework.checker.units.qual.A;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.cglib.core.Local;
 
 import java.time.Duration;
@@ -189,8 +193,78 @@ public class StudySessionServiceTest {
 
     }
 
+    @Test
+    @DisplayName("успешный запуск сессии без задачи")
+    void successfulSessionLaunchWithoutATask(){
+        StudySessionService studySessionService = new StudySessionService(
+                userRepository,
+                studySessionRepository,
+                tagRepository,
+                taskRepository
+        );
+
+        StudySessionRequestDto studySessionRequestDto = new StudySessionRequestDto(
+                1L,
+                1L,
+                null
+        );
+
+        User user = new User(
+                studySessionRequestDto.userId(),
+                "qwerty",
+                "qwerty@gmail.com"
+        );
+        Tag tag = new Tag(
+                1L,
+                "Java",
+                "0000",
+                user
+        );
+
+        ArgumentCaptor<StudySession> argumentCaptor = ArgumentCaptor.forClass(StudySession.class);
 
 
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(user));
 
+        when(tagRepository.findById(1L))
+                .thenReturn(Optional.of(tag));
+
+        when(studySessionRepository.save(any(StudySession.class)))
+                .thenAnswer(invocation -> {
+                    StudySession savedSession = invocation.getArgument(0);
+                    savedSession.setId(10L);
+                    return savedSession;
+                });
+        when(studySessionRepository.findByUserIdAndStatus(user.getId(), SessionStatus.ACTIVE))
+                .thenReturn(Optional.empty());
+
+        StudySessionResponseDto responseDto = studySessionService.startStudySession(studySessionRequestDto);
+
+        verify(studySessionRepository).save(argumentCaptor.capture());
+
+        StudySession session = argumentCaptor.getValue();
+
+        assertEquals(10L, session.getId());
+        assertEquals(user, session.getUser());
+        assertEquals(tag, session.getTag());
+        assertNull( session.getTask());
+        assertEquals(SessionStatus.ACTIVE, session.getStatus());
+        assertNotNull(session.getStartTime());
+        assertNull(session.getEndTime());
+        assertNull(session.getDurationSeconds());
+
+        assertEquals(10L, responseDto.id());
+        assertEquals(session.getUser().getId(), responseDto.userId());
+        assertEquals(session.getTag().getId(), responseDto.tagId());
+        assertNull(responseDto.taskId());
+        assertEquals(session.getStartTime(), responseDto.startTime());
+        assertNull(responseDto.endTime());
+        assertNull(responseDto.durationSeconds());
+        assertEquals(SessionStatus.ACTIVE, responseDto.status());
+
+        verify(taskRepository, never()).findById(anyLong());
+
+    }
 
 }
