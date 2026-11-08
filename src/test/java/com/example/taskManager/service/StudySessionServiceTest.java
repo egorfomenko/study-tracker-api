@@ -310,8 +310,65 @@ public class StudySessionServiceTest {
 
         verify(studySessionRepository, never()).save(any(StudySession.class));
 
-
-
     }
+
+    @Test
+    @DisplayName("отказ запуска сессии с чужой задачей")
+    void shouldRejectSessionStartWithAnotherUsersTask(){
+        StudySessionService studySessionService = new StudySessionService(
+                userRepository,
+                studySessionRepository,
+                tagRepository,
+                taskRepository
+        );
+
+        User user = new User(
+                1L,
+                "user",
+                "user@gmail.com"
+        );
+        User anotherUser = new User(
+                2L,
+                "anotherUser",
+                "anotherUser@gmail.com"
+        );
+        Tag tag = new Tag(
+                1L,
+                "Java",
+                "0000",
+                user
+        );
+
+        Task task = new Task(
+                1L,
+                anotherUser,
+                null,
+                null,
+                null,
+                null,
+                null,
+                tag
+        );
+
+        StudySessionRequestDto studySessionRequestDto = new StudySessionRequestDto(
+                user.getId(),
+                tag.getId(),
+                task.getId()
+        );
+
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(user));
+        when(tagRepository.findById(1L))
+                .thenReturn(Optional.of(tag));
+        when(taskRepository.findById(1L))
+                .thenReturn(Optional.of(task));
+
+        InvalidRequestException exception = assertThrows(InvalidRequestException.class,
+                () -> studySessionService.startStudySession(studySessionRequestDto));
+        assertEquals("Task does not belong to the user", exception.getMessage());
+        verify(studySessionRepository, never()).save(any(StudySession.class));
+    }
+
+
 
 }
