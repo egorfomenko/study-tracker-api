@@ -13,12 +13,13 @@ import com.example.taskManager.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.cglib.core.Local;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 public class StudySessionServiceTest {
@@ -118,6 +119,52 @@ public class StudySessionServiceTest {
         assertEquals(endTime, session.getEndTime());
         assertEquals(durationSeconds, session.getDurationSeconds());
         assertEquals(SessionStatus.COMPLETED, session.getStatus());
+
+    }
+
+    @Test
+    @DisplayName("Завершает активную сессию и рассчитывает длительность")
+    void sessionFinishSuccessful(){
+        StudySessionService studySessionService = new StudySessionService(
+                userRepository,
+                studySessionRepository,
+                tagRepository,
+                taskRepository
+        );
+        LocalDateTime startTime = LocalDateTime.now().minusMinutes(30);
+
+
+        StudySession session = new StudySession(
+                1L,
+                null,
+                null,
+                null,
+                startTime,
+                null,
+                null,
+                SessionStatus.ACTIVE
+        );
+
+
+        when(studySessionRepository.findById(1L))
+                .thenReturn(Optional.of(session));
+
+        LocalDateTime beforeCall = LocalDateTime.now();
+
+        StudySessionResponseDto responseDto = studySessionService.endStudySession(1L);
+
+        LocalDateTime afterCall = LocalDateTime.now();
+
+        assertTrue(session.getEndTime().isBefore(afterCall) && session.getEndTime().isAfter(beforeCall));
+        assertEquals(Duration.between(startTime, session.getEndTime()).getSeconds(), session.getDurationSeconds());
+        assertEquals(SessionStatus.COMPLETED, session.getStatus());
+
+
+
+        assertNotNull(responseDto.id());
+        assertNotNull(responseDto.status());
+        assertNotNull(responseDto.endTime());
+        assertNotNull(responseDto.durationSeconds());
 
     }
 
