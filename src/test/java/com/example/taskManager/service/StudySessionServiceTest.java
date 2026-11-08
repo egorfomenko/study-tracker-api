@@ -4,6 +4,7 @@ import com.example.taskManager.dto.StudySessionDto.StudySessionRequestDto;
 import com.example.taskManager.dto.StudySessionDto.StudySessionResponseDto;
 import com.example.taskManager.enums.SessionStatus;
 import com.example.taskManager.exception.ConflictExсeption;
+import com.example.taskManager.exception.InvalidRequestException;
 import com.example.taskManager.exception.SessionNotFoundException;
 import com.example.taskManager.model.StudySession;
 import com.example.taskManager.model.Tag;
@@ -264,6 +265,52 @@ public class StudySessionServiceTest {
         assertEquals(SessionStatus.ACTIVE, responseDto.status());
 
         verify(taskRepository, never()).findById(anyLong());
+
+    }
+
+
+    @Test
+    @DisplayName("отказ запуска сессии с чужим тегом")
+    void shouldRejectSessionStartWithAnotherUsersTag(){
+        StudySessionService studySessionService = new StudySessionService(
+                userRepository,
+                studySessionRepository,
+                tagRepository,
+                taskRepository
+        );
+
+        User userA = new User(
+                1L,
+                "qwerty",
+                "qwerty@gmail.com"
+        );
+        User userB = new User(2L, null, null);
+
+        Tag tag = new Tag(
+                1L,
+                "Java",
+                "0000",
+                userB
+        );
+
+        StudySessionRequestDto request = new StudySessionRequestDto(
+                1L,
+                1L,
+                null
+        );
+
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(userA));
+        when(tagRepository.findById(1L))
+                .thenReturn(Optional.of(tag));
+
+
+        assertThrows(InvalidRequestException.class,
+                () -> studySessionService.startStudySession(request));
+
+        verify(studySessionRepository, never()).save(any(StudySession.class));
+
+
 
     }
 
