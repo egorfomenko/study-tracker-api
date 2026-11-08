@@ -4,6 +4,7 @@ import com.example.taskManager.dto.StudySessionDto.StudySessionRequestDto;
 import com.example.taskManager.dto.StudySessionDto.StudySessionResponseDto;
 import com.example.taskManager.enums.SessionStatus;
 import com.example.taskManager.exception.ConflictExсeption;
+import com.example.taskManager.exception.SessionNotFoundException;
 import com.example.taskManager.model.StudySession;
 import com.example.taskManager.model.User;
 import com.example.taskManager.repository.StudySessionRepository;
@@ -155,16 +156,36 @@ public class StudySessionServiceTest {
 
         LocalDateTime afterCall = LocalDateTime.now();
 
-        assertTrue(session.getEndTime().isBefore(afterCall) && session.getEndTime().isAfter(beforeCall));
+        assertFalse(session.getEndTime().isBefore(beforeCall));
+        assertFalse(session.getEndTime().isAfter(afterCall));
         assertEquals(Duration.between(startTime, session.getEndTime()).getSeconds(), session.getDurationSeconds());
         assertEquals(SessionStatus.COMPLETED, session.getStatus());
 
 
 
-        assertNotNull(responseDto.id());
-        assertNotNull(responseDto.status());
-        assertNotNull(responseDto.endTime());
-        assertNotNull(responseDto.durationSeconds());
+        assertEquals(1L, responseDto.id());
+        assertEquals(SessionStatus.COMPLETED, responseDto.status());
+        assertEquals(session.getEndTime(), responseDto.endTime());
+        assertEquals(session.getDurationSeconds(), responseDto.durationSeconds());
+
+    }
+
+    @Test
+    @DisplayName("Остановка несуществующей сессии")
+    void stoppingANonExistentSession(){
+        StudySessionService studySessionService = new StudySessionService(
+                userRepository,
+                studySessionRepository,
+                tagRepository,
+                taskRepository
+        );
+
+        when(studySessionRepository.findById(1L))
+                .thenReturn(Optional.empty());
+
+
+        assertThrows(SessionNotFoundException.class,
+                () -> studySessionService.endStudySession(1L));
 
     }
 
