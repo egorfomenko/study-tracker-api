@@ -14,12 +14,10 @@ import com.example.taskManager.repository.StudySessionRepository;
 import com.example.taskManager.repository.TagRepository;
 import com.example.taskManager.repository.TaskRepository;
 import com.example.taskManager.repository.UserRepository;
-import org.checkerframework.checker.units.qual.A;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.springframework.cglib.core.Local;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -29,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 public class StudySessionServiceTest {
-
     private UserRepository userRepository;
     private StudySessionRepository studySessionRepository;
     private  TagRepository tagRepository;
@@ -368,6 +365,72 @@ public class StudySessionServiceTest {
         assertEquals("Task does not belong to the user", exception.getMessage());
         verify(studySessionRepository, never()).save(any(StudySession.class));
     }
+
+
+    @Test
+    @DisplayName("отказ запуска сессии, если задача относится к другому тегу")
+    void shouldRejectSessionStartWhenTaskHasDifferentTag(){
+        StudySessionService studySessionService = new StudySessionService(
+                userRepository,
+                studySessionRepository,
+                tagRepository,
+                taskRepository
+        );
+
+        User user = new User(
+                1L,
+                "user",
+                "user@email.com"
+        );
+
+        Tag tag = new Tag(
+                1L,
+                "Java",
+                "0000",
+                user
+        );
+
+        Tag anotherTag = new Tag(
+                2L,
+                "English",
+                "0000",
+                user
+        );
+
+        Task task = new Task(
+                1L,
+                user,
+                null,
+                null,
+                null,
+                null,
+                null,
+                anotherTag
+        );
+
+        StudySessionRequestDto requestDto = new StudySessionRequestDto(
+                user.getId(),
+                tag.getId(),
+                task.getId()
+        );
+
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(user));
+        when(tagRepository.findById(1L))
+                .thenReturn(Optional.of(tag));
+        when(taskRepository.findById(1L))
+                .thenReturn(Optional.of(task));
+
+        InvalidRequestException exception = assertThrows(InvalidRequestException.class,
+                () -> studySessionService.startStudySession(requestDto));
+        assertEquals("Task does not belong to the selected tag", exception.getMessage());
+
+        verify(studySessionRepository, never()).save(any(StudySession.class));
+
+
+    }
+
+
 
 
 
