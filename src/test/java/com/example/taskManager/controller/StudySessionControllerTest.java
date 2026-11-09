@@ -3,6 +3,7 @@ package com.example.taskManager.controller;
 import com.example.taskManager.dto.StudySessionDto.StudySessionRequestDto;
 import com.example.taskManager.exception.ApiExceptionsHandler;
 import com.example.taskManager.exception.ConflictExсeption;
+import com.example.taskManager.exception.InvalidRequestException;
 import com.example.taskManager.service.StudySessionService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,8 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -39,6 +39,29 @@ public class StudySessionControllerTest {
                         """)
                 )
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    @DisplayName("POST /sessions/start возвращает 400, если не передан tagId")
+    void shouldReturn400WhenTagIdIsMissing() throws Exception {
+        StudySessionService studySessionService = mock(StudySessionService.class);
+
+
+
+        MockMvc mockMvc = MockMvcBuilders
+                .standaloneSetup(new StudySessionController(studySessionService))
+                .setControllerAdvice(new ApiExceptionsHandler())
+                .build();
+
+        mockMvc.perform(post("/sessions/start")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "userId" : 1
+                        }
+                        """)).andExpect(status().isBadRequest());
+
+        verifyNoInteractions(studySessionService);
     }
 
 
