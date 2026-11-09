@@ -21,7 +21,9 @@ import org.mockito.ArgumentCaptor;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -426,7 +428,6 @@ public class StudySessionServiceTest {
         assertEquals("Task does not belong to the selected tag", exception.getMessage());
 
         verify(studySessionRepository, never()).save(any(StudySession.class));
-
 
     }
 

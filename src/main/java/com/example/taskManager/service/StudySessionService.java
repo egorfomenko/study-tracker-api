@@ -142,7 +142,7 @@ public class StudySessionService {
 
 
 
-    //Вспомогательные методы
+    //Вспомогательные метод
     private StudySessionResponseDto toResponse(StudySession session){
         Long userId = (session.getUser() != null) ? session.getUser().getId() : null;
         Long tadId = (session.getTag() != null) ? session.getTag().getId() : null;
