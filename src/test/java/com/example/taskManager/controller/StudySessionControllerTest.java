@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class StudySessionControllerTest {
+
     @Test
     @DisplayName("POST /sessions/start возвращает 409, если у пользователя уже есть активная сессия")
     void shouldReturn409WhenUserAlreadyHasActiveSession() throws Exception {
@@ -45,12 +46,11 @@ public class StudySessionControllerTest {
                 .andExpect(status().isConflict());
     }
 
+
     @Test
     @DisplayName("POST /sessions/start возвращает 400, если не передан tagId")
     void shouldReturn400WhenTagIdIsMissing() throws Exception {
         StudySessionService studySessionService = mock(StudySessionService.class);
-
-
 
         MockMvc mockMvc = MockMvcBuilders
                 .standaloneSetup(new StudySessionController(studySessionService))
@@ -67,6 +67,7 @@ public class StudySessionControllerTest {
 
         verifyNoInteractions(studySessionService);
     }
+
 
     @Test
     @DisplayName("POST /sessions/start возвращает 201 и данные активной сессии")
@@ -98,8 +99,9 @@ public class StudySessionControllerTest {
                         """)).andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(10))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
-
     }
+
+
 
 
 }
