@@ -11,4 +11,5 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
     List<Tag> findAll();
 
     List<Tag> findAllByUserId(Long userId);
+
 }

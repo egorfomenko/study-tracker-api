@@ -412,9 +412,4 @@ public class StudySessionServiceTest {
         verify(studySessionRepository, never()).saveAndFlush(any(StudySession.class));
 
     }
-
-
-
-
-
 }
