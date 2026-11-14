@@ -14,47 +14,34 @@ import com.example.taskManager.repository.StudySessionRepository;
 import com.example.taskManager.repository.TagRepository;
 import com.example.taskManager.repository.TaskRepository;
 import com.example.taskManager.repository.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 public class StudySessionServiceTest {
-    private UserRepository userRepository;
-    private StudySessionRepository studySessionRepository;
-    private  TagRepository tagRepository;
-    private TaskRepository taskRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private StudySessionRepository studySessionRepository;
+    @Mock private  TagRepository tagRepository;
+    @Mock private TaskRepository taskRepository;
 
-    @BeforeEach
-    void setUp(){
-        userRepository =  mock(UserRepository.class);
-        studySessionRepository = mock(StudySessionRepository.class);
-        tagRepository = mock(TagRepository.class);
-        taskRepository = mock(TaskRepository.class);
-    }
-
+    @InjectMocks StudySessionService studySessionService;
 
     @Test
     @DisplayName("Проверка запуска второго таймера, пока активен первый.")
     void studySessionStartTest(){
-
-        StudySessionService studySessionService = new StudySessionService(
-                userRepository,
-                studySessionRepository,
-                tagRepository,
-                taskRepository
-        );
-
-
         User user = new User();
         user.setId(1L);
 
@@ -82,19 +69,51 @@ public class StudySessionServiceTest {
 
         assertThrows(ConflictExсeption.class, () -> studySessionService.startStudySession(request));
 
-        verify(studySessionRepository, never()).save(any(StudySession.class));
+        verify(studySessionRepository, never()).saveAndFlush(any(StudySession.class));
     }
 
 
     @Test
+    @DisplayName("Сообщает о конфликте, если база отклоняет вторую активную сессию")
+    void shouldThrowConflictWhenDatabaseRejectsSecondActiveSession() {
+        User user = new User(
+                1L,
+                "name",
+                "user@emal.com"
+        );
+        Tag tag = new Tag(
+                1L,
+                "Java",
+                "0000",
+                user
+        );
+
+        StudySessionRequestDto requestDto = new StudySessionRequestDto(
+                user.getId(),
+                tag.getId(),
+                null
+        );
+        var violation = new org.hibernate.exception.ConstraintViolationException(
+                "Нарушена уникальность активной сессии",
+                new java.sql.SQLException("duplicate key", "23505"),
+                "study_sessions_one_active_per_user"
+        );
+
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(user));
+        when(tagRepository.findById(1L))
+                .thenReturn(Optional.of(tag));
+        when(studySessionRepository.saveAndFlush(any(StudySession.class)))
+                .thenThrow(new DataIntegrityViolationException("Ошибка записи", violation));
+
+        ConflictExсeption ex = assertThrows(ConflictExсeption.class, () -> studySessionService.startStudySession(requestDto));
+        verify(studySessionRepository).saveAndFlush(any(StudySession.class));
+        assertEquals("Индекс ограничивает создание второй активной сессии", ex.getMessage());
+    }
+
+    @Test
     @DisplayName("Запрещает повторную остановку завершённой сессии")
     void studySessionStopTest(){
-        StudySessionService studySessionService = new StudySessionService(
-                userRepository,
-                studySessionRepository,
-                tagRepository,
-                taskRepository
-        );
 
         LocalDateTime startTime = LocalDateTime.of(2026, 11, 7, 10, 0);
         LocalDateTime endTime = startTime.plusMinutes(30);
@@ -130,12 +149,6 @@ public class StudySessionServiceTest {
     @Test
     @DisplayName("Завершает активную сессию и рассчитывает длительность")
     void sessionFinishSuccessful(){
-        StudySessionService studySessionService = new StudySessionService(
-                userRepository,
-                studySessionRepository,
-                tagRepository,
-                taskRepository
-        );
         LocalDateTime startTime = LocalDateTime.now().minusMinutes(30);
 
 
@@ -177,12 +190,6 @@ public class StudySessionServiceTest {
     @Test
     @DisplayName("Остановка несуществующей сессии")
     void stoppingANonExistentSession(){
-        StudySessionService studySessionService = new StudySessionService(
-                userRepository,
-                studySessionRepository,
-                tagRepository,
-                taskRepository
-        );
 
         when(studySessionRepository.findById(1L))
                 .thenReturn(Optional.empty());
@@ -196,13 +203,6 @@ public class StudySessionServiceTest {
     @Test
     @DisplayName("успешный запуск сессии без задачи")
     void successfulSessionLaunchWithoutATask(){
-        StudySessionService studySessionService = new StudySessionService(
-                userRepository,
-                studySessionRepository,
-                tagRepository,
-                taskRepository
-        );
-
         StudySessionRequestDto studySessionRequestDto = new StudySessionRequestDto(
                 1L,
                 1L,
@@ -230,7 +230,7 @@ public class StudySessionServiceTest {
         when(tagRepository.findById(1L))
                 .thenReturn(Optional.of(tag));
 
-        when(studySessionRepository.save(any(StudySession.class)))
+        when(studySessionRepository.saveAndFlush(any(StudySession.class)))
                 .thenAnswer(invocation -> {
                     StudySession savedSession = invocation.getArgument(0);
                     savedSession.setId(10L);
@@ -241,7 +241,7 @@ public class StudySessionServiceTest {
 
         StudySessionResponseDto responseDto = studySessionService.startStudySession(studySessionRequestDto);
 
-        verify(studySessionRepository).save(argumentCaptor.capture());
+        verify(studySessionRepository).saveAndFlush(argumentCaptor.capture());
 
         StudySession session = argumentCaptor.getValue();
 
@@ -271,12 +271,6 @@ public class StudySessionServiceTest {
     @Test
     @DisplayName("отказ запуска сессии с чужим тегом")
     void shouldRejectSessionStartWithAnotherUsersTag(){
-        StudySessionService studySessionService = new StudySessionService(
-                userRepository,
-                studySessionRepository,
-                tagRepository,
-                taskRepository
-        );
 
         User userA = new User(
                 1L,
@@ -307,19 +301,13 @@ public class StudySessionServiceTest {
         assertThrows(InvalidRequestException.class,
                 () -> studySessionService.startStudySession(request));
 
-        verify(studySessionRepository, never()).save(any(StudySession.class));
+        verify(studySessionRepository, never()).saveAndFlush(any(StudySession.class));
 
     }
 
     @Test
     @DisplayName("отказ запуска сессии с чужой задачей")
     void shouldRejectSessionStartWithAnotherUsersTask(){
-        StudySessionService studySessionService = new StudySessionService(
-                userRepository,
-                studySessionRepository,
-                tagRepository,
-                taskRepository
-        );
 
         User user = new User(
                 1L,
@@ -365,19 +353,13 @@ public class StudySessionServiceTest {
         InvalidRequestException exception = assertThrows(InvalidRequestException.class,
                 () -> studySessionService.startStudySession(studySessionRequestDto));
         assertEquals("Task does not belong to the user", exception.getMessage());
-        verify(studySessionRepository, never()).save(any(StudySession.class));
+        verify(studySessionRepository, never()).saveAndFlush(any(StudySession.class));
     }
 
 
     @Test
     @DisplayName("отказ запуска сессии, если задача относится к другому тегу")
     void shouldRejectSessionStartWhenTaskHasDifferentTag(){
-        StudySessionService studySessionService = new StudySessionService(
-                userRepository,
-                studySessionRepository,
-                tagRepository,
-                taskRepository
-        );
 
         User user = new User(
                 1L,
@@ -427,7 +409,7 @@ public class StudySessionServiceTest {
                 () -> studySessionService.startStudySession(requestDto));
         assertEquals("Task does not belong to the selected tag", exception.getMessage());
 
-        verify(studySessionRepository, never()).save(any(StudySession.class));
+        verify(studySessionRepository, never()).saveAndFlush(any(StudySession.class));
 
     }
 

@@ -13,6 +13,7 @@ import com.example.taskManager.repository.StudySessionRepository;
 import com.example.taskManager.repository.TagRepository;
 import com.example.taskManager.repository.TaskRepository;
 import com.example.taskManager.repository.UserRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -102,7 +103,19 @@ public class StudySessionService {
                 SessionStatus.ACTIVE
         );
 
-        return toResponse(studySessionRepository.save(session));
+        try{
+            StudySession sevedSession = studySessionRepository.saveAndFlush(session);
+            return toResponse(sevedSession);
+        }catch (DataIntegrityViolationException e){
+            Throwable cause = e.getCause();
+
+            if(cause instanceof org.hibernate.exception.ConstraintViolationException violation){
+                if("23505".equals(violation.getSQLState()) && "study_sessions_one_active_per_user".equals(violation.getConstraintName())){
+                    throw new ConflictExсeption("Индекс ограничивает создание второй активной сессии");
+                }
+            }
+            throw e;
+        }
 
     }
     @Transactional(readOnly = true)
