@@ -1,0 +1,84 @@
+# taskManager
+
+REST API для планирования задач и учёта учебного времени. Пользователи могут создавать задачи и теги, запускать таймер, просматривать историю сессий и сравнивать суммарное время в общем рейтинге.
+
+- Учебную сессию можно привязать к задаче. Тег обязателен.
+- У пользователя может быть только одна активная сессия. Частичный уникальный индекс PostgreSQL защищает это правило при одновременных запросах. Повторный старт возвращает `409 Conflict`.
+- Лидерборд показывает до десяти пользователей по суммарной длительности завершённых сессий за всё время. При равном времени первым идёт пользователь с меньшим ID.
+
+**Стек:** Java 17, Spring Boot, Spring Data JPA, PostgreSQL 16, Flyway, Maven, Docker Compose, JUnit 5, Mockito и MockMvc.
+
+## Локальный запуск
+
+Понадобятся JDK 17 и запущенный Docker с Compose. Maven устанавливать отдельно не нужно.
+
+```bash
+git clone https://github.com/Effiel24/taskManager.git
+cd taskManager
+docker compose up -d postgres
+docker compose exec postgres pg_isready -U postgres -d task_db
+./mvnw spring-boot:run
+```
+
+Запускайте приложение после того, как `pg_isready` сообщит, что база принимает подключения. PostgreSQL доступен на `localhost:5433`, API — на `http://localhost:8080`. При первом запуске на пустой базе Flyway создаёт схему и добавляет индекс для активных сессий. На Windows используйте `mvnw.cmd` вместо `./mvnw`.
+
+## Пример работы с API
+
+Выполняйте команды из второго терминала, пока приложение запущено. Подставляйте в дальнейшие запросы ID из ответов вместо значений `1`.
+
+1. Создайте пользователя и возьмите его `id` из ответа (`201 Created`).
+
+   ```bash
+   curl -i -X POST http://localhost:8080/users \
+     -H 'Content-Type: application/json' \
+     -d '{"name":"Анна","email":"anna@example.com"}'
+   ```
+
+2. Создайте тег для этого пользователя и возьмите `id` тега (`201 Created`).
+
+   ```bash
+   curl -i -X POST http://localhost:8080/tags \
+     -H 'Content-Type: application/json' \
+     -d '{"name":"Java","colorHex":"#2563EB","userId":1}'
+   ```
+
+3. Запустите сессию с ID пользователя и тега. Ответ содержит `id` сессии и статус `ACTIVE`. Если повторить тот же запрос до остановки таймера, API вернёт `409 Conflict`.
+
+   ```bash
+   curl -i -X POST http://localhost:8080/sessions/start \
+     -H 'Content-Type: application/json' \
+     -d '{"userId":1,"tagId":1}'
+   ```
+
+4. Через несколько секунд остановите сессию, указав её ID в URL. В ответе будут статус `COMPLETED` и длительность в секундах.
+
+   ```bash
+   curl -i -X POST http://localhost:8080/sessions/1/stop
+   ```
+
+5. Откройте историю пользователя и общий рейтинг.
+
+   ```bash
+   curl -s http://localhost:8080/users/1/sessions
+   curl -s http://localhost:8080/leaderboard
+   ```
+
+   Пример строки рейтинга, если у Анны накопилось 90 секунд учёбы:
+
+   ```json
+   [
+     {"userId": 1, "name": "Анна", "totalDurationSeconds": 90}
+   ]
+   ```
+
+## Тесты
+
+Запустите PostgreSQL через Compose, затем выполните `./mvnw test`. База нужна тесту загрузки Spring-контекста. Тесты сервисов и контроллера с моками можно запустить отдельно:
+
+```bash
+./mvnw '-Dtest=*ServiceTest,*ControllerTest' test
+```
+
+Тесты покрывают запуск и остановку сессий, обработку конфликта, проверку владельца задачи и тега, запрет удаления используемого тега и HTTP-ответы контроллера сессий.
+
+Проект рассчитан на локальный запуск. В API пока нет аутентификации.
