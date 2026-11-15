@@ -13,8 +13,8 @@ REST API для планирования задач и учёта учебног
 Понадобятся JDK 17 и запущенный Docker с Compose. Maven устанавливать отдельно не нужно.
 
 ```bash
-git clone https://github.com/Effiel24/taskManager.git
-cd taskManager
+git clone https://github.com/egorfomenko/study-tracker-api.git
+cd study-tracker-api
 docker compose up -d postgres
 docker compose exec postgres pg_isready -U postgres -d task_db
 ./mvnw spring-boot:run
