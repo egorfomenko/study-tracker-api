@@ -52,6 +52,14 @@ public class UserController {
         return ResponseEntity.status(200).body(studySessionService.getAllSessionsByUserId(id));
     }
 
+    @GetMapping("/{id}/tags/{tagId}/stats")
+    public ResponseEntity<Long> getAlldurationSeconds(
+            @PathVariable("id") Long id,
+            @PathVariable("tagId") Long tagId
+    ){
+        return ResponseEntity.status(200).body(tagService.getAlldurationSeconds(id, tagId));
+    }
+
     @PostMapping
     public ResponseEntity<UserResponseDto> createUser(
             @RequestBody @Valid UserRequestDto user

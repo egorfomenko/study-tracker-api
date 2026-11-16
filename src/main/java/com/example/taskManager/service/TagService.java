@@ -3,10 +3,8 @@ package com.example.taskManager.service;
 import com.example.taskManager.dto.TagDto.TagCreateRequestDto;
 import com.example.taskManager.dto.TagDto.TagResponseDto;
 import com.example.taskManager.dto.TagDto.TagUpdateRequestDto;
-import com.example.taskManager.exception.InvalidRequestException;
-import com.example.taskManager.exception.TagNotFoundException;
-import com.example.taskManager.exception.TaskNotFoundException;
-import com.example.taskManager.exception.UserNotFoundException;
+import com.example.taskManager.enums.SessionStatus;
+import com.example.taskManager.exception.*;
 import com.example.taskManager.model.Tag;
 import com.example.taskManager.model.User;
 import com.example.taskManager.repository.StudySessionRepository;
@@ -48,6 +46,26 @@ public class TagService {
         );
 
         return toResponse(tag);
+    }
+
+    public Long getAlldurationSeconds(Long id, Long tagId){
+        if(id == null || tagId == null){
+            throw new InvalidRequestException("userId и tagId не могут быть null");
+        }
+
+        Tag tag = tagRepository.findById(tagId)
+                .orElseThrow(() -> new TagNotFoundException("Тега с таким id нет"));
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("Пользователя с таким id нет"));
+
+        Long userIdInTheTag = (tag.getUser() != null && tag.getUser().getId() != null) ? tag.getUser().getId() : null;
+        Long userId = (user.getId() != null) ? user.getId() : null;
+
+        if(userIdInTheTag == null || userId == null || !userIdInTheTag.equals(id) || !userId.equals(id)){
+            throw new TagNotFoundException("у пользователя, указанного в URL, такого тега нет.");
+        }
+
+        return studySessionRepository.sumDurationByUserAndTag(id, tagId, SessionStatus.COMPLETED);
     }
 
     public List<TagResponseDto> getAllTagsByUserId(Long id) {

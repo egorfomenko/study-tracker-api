@@ -155,6 +155,8 @@ public class StudySessionService {
 
 
 
+
+
     //Вспомогательные метод
     private StudySessionResponseDto toResponse(StudySession session){
         Long userId = (session.getUser() != null) ? session.getUser().getId() : null;
