@@ -9,7 +9,6 @@ import java.time.LocalDate;
 
 
 public record TaskCreateRequestDto (
-        @NotNull @Positive Long userId,
         @NotBlank String title,
         LocalDate deadlineDate,
         TaskPriority priority,

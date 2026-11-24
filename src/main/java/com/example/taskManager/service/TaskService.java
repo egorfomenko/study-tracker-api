@@ -4,10 +4,7 @@ import com.example.taskManager.dto.TaskDto.TaskCreateRequestDto;
 import com.example.taskManager.dto.TaskDto.TaskResponseDto;
 import com.example.taskManager.dto.TaskDto.TaskUpdateRequestDto;
 import com.example.taskManager.enums.TaskStatus;
-import com.example.taskManager.exception.InvalidRequestException;
-import com.example.taskManager.exception.TagNotFoundException;
-import com.example.taskManager.exception.TaskNotFoundException;
-import com.example.taskManager.exception.UserNotFoundException;
+import com.example.taskManager.exception.*;
 import com.example.taskManager.model.Tag;
 import com.example.taskManager.model.Task;
 import com.example.taskManager.model.User;
@@ -15,6 +12,7 @@ import com.example.taskManager.repository.StudySessionRepository;
 import com.example.taskManager.repository.TagRepository;
 import com.example.taskManager.repository.TaskRepository;
 import com.example.taskManager.repository.UserRepository;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -43,43 +41,45 @@ public class TaskService {
 
 
     //Получение задач из бд по ID
-    public TaskResponseDto getTaskById(Long id){
+    public TaskResponseDto getTaskById(Long id, String email){
         log.info("get task by id");
-        return toResponse(taskRepository.findById(id)
-                .orElseThrow(() -> new TaskNotFoundException("Task not found with id: " + id)));
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Пользователь с такой почтой не найден."));
+        Task task = taskRepository.findByIdAndUser_Id(id, user.getId())
+                .orElseThrow(() -> new TaskNotFoundException("Задача не найдена"));
+        return toResponse(task);
 
     }
+
     //Получение всех задач
-    public List<TaskResponseDto> getAllTasks(){
-        log.info("get all tasks");
-        List<Task> taskList= taskRepository.findAll();
-        var responseList = taskList.stream().map(t -> toResponse(t)).toList();
+    public List<TaskResponseDto> getAllTasks(String email){
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь с такой почтой не найден"));
+        Long id = user.getId();
+        List<Task> taskList= taskRepository.findAllByUser_Id(id);
+        var responseList = taskList.stream().map(this::toResponse).toList();
         return responseList;
     }
 
     //Создание Задачи и сохранение в базу данных
     @Transactional
-    public TaskResponseDto createTask(TaskCreateRequestDto request){
+    public TaskResponseDto createTask(TaskCreateRequestDto request, String email){
         if(request.tagId() == null){
             throw new InvalidRequestException("tagId is required");
         }
-        if(request.userId() == null){
-            throw new InvalidRequestException("userId is required");
-        }
+
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь не найден."));
 
         Tag tag = tagRepository.findById(request.tagId()).orElseThrow(() -> new TagNotFoundException("Tag not found with id: " + request.tagId()));
 
         Long userId = (tag.getUser() != null) ? tag.getUser().getId() : null;
 
-        if (userId == null || !userId.equals(request.userId())) {
+        if (userId == null || !userId.equals(user.getId())) {
             throw new InvalidRequestException(
                     "Tag does not belong to the user"
             );
         }
-
-        User user = userRepository.findById(request.userId()).orElseThrow(
-                () -> new UserNotFoundException("User not found with id" + request.userId())
-        );
 
         Task taskEntity = toEntity(request, tag, user);
 
@@ -88,13 +88,17 @@ public class TaskService {
 
     //Обновление задачи.
     @Transactional
-    public TaskResponseDto updateTask(Long id, TaskUpdateRequestDto requestDto){
-        Task entity = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException("Task not found with id: " + id));
+    public TaskResponseDto updateTask(Long id, TaskUpdateRequestDto requestDto, String email){
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь не найден"));
+
+        Task entity = taskRepository.findByIdAndUser_Id(id, user.getId())
+                .orElseThrow(() -> new TaskNotFoundException("Task not found with id: " + id));
 
         if(requestDto.tagId() == null){
             throw new InvalidRequestException("tagId is required");
         }
-        Tag tag = tagRepository.findById(requestDto.tagId()).orElseThrow(() -> new TaskNotFoundException("Tag not found with id" + requestDto.tagId()));
+        Tag tag = tagRepository.findById(requestDto.tagId()).orElseThrow(() -> new TagNotFoundException("Tag not found with id" + requestDto.tagId()));
 
         Long userIdInTheTag = (tag.getUser() != null) ? tag.getUser().getId() : null;
         Long userIdInTheTask = (entity.getUser() != null) ? entity.getUser().getId() : null;
@@ -102,7 +106,6 @@ public class TaskService {
         if(userIdInTheTask == null || userIdInTheTag == null || !userIdInTheTask.equals(userIdInTheTag)){
             throw new InvalidRequestException("Tag does not belong to the user");
         }
-
 
         entity.setDeadlineDate(requestDto.deadlineDate());
         entity.setPriority(requestDto.priority());
@@ -115,11 +118,13 @@ public class TaskService {
 
     //Удаление задачи
     @Transactional
-    public TaskResponseDto deleteTask(Long id){
+    public TaskResponseDto deleteTask(Long id, String email){
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь не найден"));
 
-        Task task = taskRepository.findById(id).orElseThrow(() -> new TaskNotFoundException(
-                "Task not found with id: " + id
-        ));
+
+        Task task = taskRepository.findByIdAndUser_Id(id, user.getId())
+                .orElseThrow(() -> new TaskNotFoundException("Task not found with id: " + id));
 
         if(studySessionRepository.existsByTaskId(task.getId())){
             throw new InvalidRequestException("Task is used by study sessions");

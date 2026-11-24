@@ -17,12 +17,16 @@ public class User {
     @Column(name = "email", nullable = false)
     private String email;
 
+    @Column(name = "password_hash")
+    private String passwordHash;
+
     public User(){}
 
-    public User(Long id, String name, String email){
+    public User(Long id, String name, String email, String password){
         this.id = id;
         this.name = name;
         this.email = email;
+        this.passwordHash = password;
     }
 
     public Long getId() {
@@ -47,5 +51,13 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 }

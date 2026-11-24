@@ -2,8 +2,9 @@ package com.example.taskManager.controller;
 
 import com.example.taskManager.dto.StudySessionDto.StudySessionResponseDto;
 import com.example.taskManager.dto.TagDto.TagResponseDto;
-import com.example.taskManager.dto.UserDto.UserRequestDto;
+import com.example.taskManager.dto.UserDto.UserCreateRequestDto;
 import com.example.taskManager.dto.UserDto.UserResponseDto;
+import com.example.taskManager.dto.UserDto.UserUpdateRequestDto;
 import com.example.taskManager.service.StudySessionService;
 import com.example.taskManager.service.TagService;
 import com.example.taskManager.service.UserService;
@@ -62,7 +63,7 @@ public class UserController {
 
     @PostMapping
     public ResponseEntity<UserResponseDto> createUser(
-            @RequestBody @Valid UserRequestDto user
+            @RequestBody @Valid UserCreateRequestDto user
     ){
         return ResponseEntity.status(201).body(userService.createUser(user));
     }
@@ -70,7 +71,7 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<UserResponseDto> updateUser(
             @PathVariable("id") Long id,
-            @RequestBody @Valid UserRequestDto userRequestDto
+            @RequestBody @Valid UserUpdateRequestDto userRequestDto
     ){
         return ResponseEntity.status(200).body(userService.updateUser(id, userRequestDto));
     }

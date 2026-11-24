@@ -18,6 +18,7 @@ public class Task{
     @Column(name = "task_id")
     private Long id;
 
+
     @Column(name = "title", nullable = false)
     @NotNull
     private String title;

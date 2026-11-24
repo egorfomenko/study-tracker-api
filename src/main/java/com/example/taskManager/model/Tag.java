@@ -13,10 +13,9 @@ public class Tag {
 
     @Column(name = "name", nullable = false)
     private String name;
-
+    
     @Column(name = "color")
     private String colorHex;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

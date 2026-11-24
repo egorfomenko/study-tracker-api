@@ -1,13 +1,14 @@
 package com.example.taskManager.service;
 
-import com.example.taskManager.dto.TagDto.TagResponseDto;
-import com.example.taskManager.dto.UserDto.UserRequestDto;
+import com.example.taskManager.dto.UserDto.UserCreateRequestDto;
 import com.example.taskManager.dto.UserDto.UserResponseDto;
+import com.example.taskManager.dto.UserDto.UserUpdateRequestDto;
 import com.example.taskManager.exception.UserNotFoundException;
-import com.example.taskManager.model.Tag;
 import com.example.taskManager.model.User;
 import com.example.taskManager.repository.TagRepository;
 import com.example.taskManager.repository.UserRepository;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -18,10 +19,12 @@ import java.util.NoSuchElementException;
 public class UserService {
     private final UserRepository userRepository;
     private final TagRepository tagRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, TagRepository tagRepository) {
+    public UserService(UserRepository userRepository, TagRepository tagRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.tagRepository = tagRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public UserResponseDto getUserById(Long id){
@@ -38,12 +41,12 @@ public class UserService {
     }
 
 
-    public UserResponseDto createUser(UserRequestDto userRequestDto){
+    public UserResponseDto createUser(UserCreateRequestDto userRequestDto){
         User user = toEntity(userRequestDto);
         return toResponse(userRepository.save(user));
     }
     @Transactional
-    public UserResponseDto updateUser(Long id, UserRequestDto userRequestDto){
+    public UserResponseDto updateUser(Long id, UserUpdateRequestDto userRequestDto){
         User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
         user.setEmail(userRequestDto.email());
         user.setName(userRequestDto.name());
@@ -57,11 +60,12 @@ public class UserService {
     }
 
     //Вспомогательные классы для UserService
-    private User toEntity(UserRequestDto userRequestDto){
+    private User toEntity(UserCreateRequestDto userRequestDto){
         return new User(
                 null,
                 userRequestDto.name(),
-                userRequestDto.email()
+                userRequestDto.email(),
+                passwordEncoder.encode(userRequestDto.password())
         );
     }
 
