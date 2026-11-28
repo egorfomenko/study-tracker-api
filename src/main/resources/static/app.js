@@ -1,6 +1,6 @@
 'use strict';
 const $ = (id) => document.getElementById(id);
-const state = {users: [], tasks: [], tags: [], sessions: [], leaders: [], userId: null, view: 'tasks', loading: false};
+const state = {profile: null, tasks: [], tags: [], sessions: [], leaders: [], userId: null, view: 'tasks', loading: false};
 let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let selectedDate = localDate(new Date());
 
@@ -23,37 +23,14 @@ function duration(value) {
 }
 const date = (value) => value ? new Intl.DateTimeFormat('ru', {day:'numeric',month:'short'}).format(new Date(value)) : 'Без срока';
 function notice(message = '') { $('notice').textContent = message; $('notice').hidden = !message; }
-async function api(path, method = 'GET', body) {
-  const headers = body ? {'Content-Type': 'application/json'} : {};
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())) {
-    try {
-      const csrfResponse = await fetch('/csrf', {method: 'GET', cache: 'no-store'});
-      if (!csrfResponse.ok) throw new Error();
-      const csrf = await csrfResponse.json();
-      if (typeof csrf?.token !== 'string' || !csrf.token.trim() ||
-          typeof csrf?.headerName !== 'string' || !csrf.headerName.trim()) throw new Error();
-      // Validate the server-provided header before sending the modifying request.
-      new Headers({[csrf.headerName]: csrf.token});
-      headers[csrf.headerName] = csrf.token;
-    } catch {
-      throw new Error('Не удалось получить CSRF-токен. Запрос не отправлен. Проверь подключение и войди в аккаунт заново.');
-    }
-  }
-  let response;
-  try {response = await fetch(path, {method, headers, body: body ? JSON.stringify(body) : undefined});}
-  catch {throw new Error('Не удалось связаться с сервером. Проверь, что Spring Boot запущен.');}
-  const data = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(data?.detail || data?.message || `Не удалось выполнить запрос (HTTP ${response.status}).`);
-  return data;
-}
-async function loadTagsWithDuration(userId, sessions) {
-  const tags = await api(`/users/${userId}/tags`);
+async function loadTagsWithDuration(sessions) {
+  const tags = await api('/tags');
 
   return Promise.all(tags.map(async tag => {
     let totalDurationSeconds;
 
     try {
-      totalDurationSeconds = await api(`/users/${userId}/tags/${tag.id}/stats`);
+      totalDurationSeconds = await api(`/tags/${tag.id}/stats`);
     } catch {
       totalDurationSeconds = sessions
         .filter(session => session.tagId === tag.id && session.status === 'COMPLETED')
@@ -71,15 +48,14 @@ async function load() {
   const version = ++loadVersion;
   state.loading = true; $('refresh').disabled = true; notice();
   try {
-    const [users, tasks, leaders] = await Promise.all([api('/users'), api('/tasks'), api('/leaderboard')]);
+    const profile = await api('/users/me');
+    const [tasks, leaders, sessions] = await Promise.all([
+      api('/tasks'), api('/leaderboard'), api('/sessions')
+    ]);
+    const tags = await loadTagsWithDuration(sessions);
     if (version !== loadVersion) return;
-    const userId = users.some(u => u.id === state.userId) ? state.userId : users[0]?.id ?? null;
-    const sessions = userId ? await api(`/users/${userId}/sessions`) : [];
-    const tags = userId ? await loadTagsWithDuration(userId, sessions) : [];
-    if (version !== loadVersion) return;
-    Object.assign(state, {users, tasks: tasks.filter(t => t.userId === userId), leaders, userId, tags, sessions});
-    try {localStorage.setItem('rhythm-user', userId ?? '');} catch {}
-    $('user-select').innerHTML = users.length ? options(users.map(u => [u.id,u.name]), userId) : '<option>Создай пользователя</option>';
+    Object.assign(state, {profile, userId: profile.id, tasks, leaders, sessions, tags});
+    $('profile-name').textContent = profile.name;
     $('tag-filter').innerHTML = '<option value="">Все теги</option>' + tagOptions();
     render();
   } catch (error) {if (version === loadVersion) {notice(error.message); $('content').innerHTML = '<div class="empty"><strong>Не удалось загрузить данные</strong>Проверь подключение к базе и нажми «Обновить».</div>';}}
@@ -105,7 +81,7 @@ function render() {
   $('focus-title').textContent = session ? 'Сессия идёт' : 'Учебная сессия';
   $('focus-description').textContent = session ? (state.tags.find(t => t.id === session.tagId)?.name || 'Учебная сессия') + (session.taskId ? ' · ' + (state.tasks.find(t => t.id === session.taskId)?.title || 'Задача') : '') : 'Выбери направление и начни учебную сессию.';
   tick();
-  if (!state.userId && state.view !== 'leaders') { $('content').innerHTML = '<div class="empty"><strong>Начни свой ритм</strong>Создай пользователя с помощью кнопки слева.<br>Затем добавь первый тег и задачу.</div>'; return; }
+  if (!state.profile) return;
   if (state.view === 'tasks') renderTasks();
   if (state.view === 'calendar') renderCalendar();
   if (state.view === 'tags') renderTags();
@@ -288,23 +264,22 @@ function field(label, input) {return `<label>${label}${input}</label>`;}
 function openModal(title, fields, handler) {
  $('modal-title').textContent = title; $('fields').innerHTML = fields; $('form-error').textContent = ''; submitForm = handler; $('save-button').disabled = false; $('modal').showModal();
 }
-function requireUser() {if (!state.userId) {userEditor(); return false;} return true;}
+function requireUser() {return Boolean(state.profile);}
 function requireTags() {if (!requireUser()) return false; if (!state.tags.length) {notice('Сначала создай тег — он нужен для задач и сессий.'); tagEditor(); return false;} return true;}
-function userEditor() {openModal('Новое пространство',field('Имя','<input name="name" required maxlength="100" autocomplete="name" placeholder="Как тебя зовут?">') + field('Email','<input name="email" required type="email" maxlength="254" autocomplete="email" placeholder="you@example.com">'), async data => {const user = await api('/users','POST',data); state.userId = user.id;});}
 function tagEditor(tag) {
  if (!requireUser()) return;
- openModal(tag ? 'Изменить тег' : 'Новый тег', field('Название',`<input name="name" required maxlength="100" value="${escapeHtml(tag?.name)}" placeholder="Например, Java">`) + field('Цвет',`<input name="colorHex" type="color" value="${color(tag?.colorHex || '#7e9768')}">`), data => api(tag ? `/tags/${tag.id}` : '/tags',tag ? 'PUT':'POST',tag ? data : {...data,userId:state.userId}));
+ openModal(tag ? 'Изменить тег' : 'Новый тег', field('Название',`<input name="name" required maxlength="100" value="${escapeHtml(tag?.name)}" placeholder="Например, Java">`) + field('Цвет',`<input name="colorHex" type="color" value="${color(tag?.colorHex || '#7e9768')}">`), data => api(tag ? `/tags/${tag.id}` : '/tags',tag ? 'PUT':'POST',data));
 }
 function taskEditor(task, deadlineDate = '') {
  if (!requireTags()) return;
- openModal(task ? 'Изменить задачу' : 'Новая задача',field('Что нужно сделать?',`<input name="title" required maxlength="255" value="${escapeHtml(task?.title)}" placeholder="Например, разобраться с коллекциями">`)+field('Направление',`<select name="tagId" required>${tagOptions(task?.tagId)}</select>`)+field('Приоритет',`<select name="priority">${options(Object.entries(priorities),task?.priority || 'Medium')}</select>`)+field('Срок',`<input type="date" name="deadlineDate" value="${escapeHtml(task?.deadlineDate || deadlineDate)}">`)+(task ? field('Статус',`<select name="status">${options(Object.entries(statuses),task.status)}</select>`) : ''), data => api(task ? `/tasks/${task.id}` : '/tasks',task ? 'PUT':'POST',{...data,tagId:Number(data.tagId),deadlineDate:data.deadlineDate || null,...(!task ? {userId:state.userId} : {})}));
+ openModal(task ? 'Изменить задачу' : 'Новая задача',field('Что нужно сделать?',`<input name="title" required maxlength="255" value="${escapeHtml(task?.title)}" placeholder="Например, разобраться с коллекциями">`)+field('Направление',`<select name="tagId" required>${tagOptions(task?.tagId)}</select>`)+field('Приоритет',`<select name="priority">${options(Object.entries(priorities),task?.priority || 'Medium')}</select>`)+field('Срок',`<input type="date" name="deadlineDate" value="${escapeHtml(task?.deadlineDate || deadlineDate)}">`)+(task ? field('Статус',`<select name="status">${options(Object.entries(statuses),task.status)}</select>`) : ''), data => api(task ? `/tasks/${task.id}` : '/tasks',task ? 'PUT':'POST',{...data,tagId:Number(data.tagId),deadlineDate:data.deadlineDate || null}));
 }
 function sessionEditor() {
  if (activeSession()) {notice('Сначала заверши текущую учебную сессию.'); return;}
  if (!requireTags()) return;
  openModal('Начать фокус-сессию',field('Направление',`<select id="session-tag" name="tagId" required>${tagOptions()}</select>`)+field('Задача (необязательно)','<select id="session-task" name="taskId"></select>') + field('Интервал помодоро', `<select name="pomodoroMinutes">${options(pomodoroIntervals.map(minutes => [minutes, `${minutes} минут`]), 20)}</select>`) + '<p class="muted">В конце интервала прозвучит сигнал. Сессия продолжится до ручного завершения.</p>', async data => {
    unlockAlert();
-   const session = await api('/sessions/start','POST',{userId:state.userId,tagId:Number(data.tagId),taskId:data.taskId ? Number(data.taskId) : null});
+   const session = await api('/sessions/start','POST',{tagId:Number(data.tagId),taskId:data.taskId ? Number(data.taskId) : null});
    pomodoroSettings[pomodoroKey(session)] = {minutes: Number(data.pomodoroMinutes), notified: false};
    savePomodoro();
  });
@@ -374,9 +349,33 @@ $('theme-toggle')?.addEventListener('click', () => {
 
 $('editor').addEventListener('submit',async event => {event.preventDefault(); const handler = submitForm; $('save-button').disabled = true; $('form-error').textContent = ''; try {await handler(Object.fromEntries(new FormData(event.target))); $('modal').close(); await load();} catch(error) {$('form-error').textContent = error.message;} finally {$('save-button').disabled = false;}});
 $('close-modal').onclick = $('cancel-modal').onclick = () => $('modal').close();
-$('add-user').onclick = userEditor;
+$('profile-open').onclick = () => {
+  const profile = state.profile;
+  $('account-name').textContent = profile?.name || 'Профиль';
+  $('account-email').textContent = profile?.email || '';
+  $('account-stats').hidden = !profile;
+  if (profile) {
+    const completed = state.sessions.filter(session => session.status === 'COMPLETED');
+    $('account-done').textContent = `${state.tasks.filter(task => task.status === 'DONE').length} из ${state.tasks.length}`;
+    $('account-sessions').textContent = completed.length;
+    $('account-duration').textContent = duration(completed.reduce((sum, item) => sum + Number(item.durationSeconds || 0), 0));
+  }
+  $('account-error').textContent = '';
+  $('account-dialog').showModal();
+};
+$('account-close').onclick = () => $('account-dialog').close();
+$('account-logout').onclick = async event => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  try {
+    await api('/logout', 'POST');
+    location.replace('/signin.html');
+  } catch (error) {
+    $('account-error').textContent = error.message;
+    button.disabled = false;
+  }
+};
 $('refresh').onclick = load;
-$('user-select').onchange = event => {state.userId = Number(event.target.value); load();};
 $('create-button').onclick = () => {if (state.view === 'tasks' || state.view === 'calendar') {
   taskEditor(undefined, state.view === 'calendar' ? selectedDate : '');
 } if (state.view === 'tags') tagEditor(); if (state.view === 'sessions') sessionEditor();};
@@ -415,7 +414,6 @@ $('content').addEventListener('click',event => {
 });
 $('modal').addEventListener('close',() => {$('save-button').textContent = 'Сохранить';});
 $('date-label').textContent = new Intl.DateTimeFormat('ru',{weekday:'long',day:'numeric',month:'long'}).format(new Date()).toLocaleUpperCase();
-try {state.userId = Number(localStorage.getItem('rhythm-user')) || null;} catch {}
 setInterval(tick, 1000);
 setInterval(() => {
   if (!state.loading && (state.view === 'tasks' || state.view === 'calendar')) render();

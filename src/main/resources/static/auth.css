@@ -1,0 +1,18 @@
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100svh; display: grid; place-items: center; padding: 24px; color: #243b31; font: 16px/1.45 Inter, system-ui, sans-serif; background: radial-gradient(ellipse at 8% 10%, #cbdcc7, transparent 48%), radial-gradient(ellipse at 94% 90%, #ecdcc1, transparent 55%), #f3f5ed; }
+.login-card { width: min(100%, 430px); padding: clamp(24px, 5vw, 44px); border: 1px solid #fff; border-radius: 28px; background: #fffef9; box-shadow: 0 24px 90px #243b3118; }
+.brand { display: flex; align-items: center; gap: 10px; font-size: 32px; font-weight: 750; letter-spacing: -.06em; }
+.brand img { border-radius: 12px; }
+.switch { display: flex; margin: 30px 0 24px; padding: 4px; border-radius: 12px; background: #edf1e8; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+.switch button { flex: 1; padding: 8px; border: 0; border-radius: 9px; color: #4a5f53; background: transparent; }
+.switch [aria-pressed=true] { background: #fff; box-shadow: 0 1px 5px #27443220; font-weight: 650; }
+h1 { margin: 0 0 24px; font-size: clamp(27px, 6vw, 35px); line-height: 1.1; letter-spacing: -.045em; }
+label { display: grid; gap: 5px; margin-top: 16px; font-size: 14px; font-weight: 600; }
+[hidden] { display: none !important; }
+input { width: 100%; padding: 12px; border: 1px solid #b8c6b9; border-radius: 10px; background: white; }
+:focus-visible { outline: 3px solid #629879; outline-offset: 2px; }
+.submit { width: 100%; padding: 13px; border: 0; border-radius: 12px; background: #254c3a; color: white; font-weight: 700; }
+button:disabled { opacity: .65; }
+#auth-message { font-size: 14px; }

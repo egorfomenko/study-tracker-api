@@ -20,7 +20,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         return http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/csrf").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/csrf", "/", "/index.html", "/signin.html",
+                                "/auth.js", "/api.js", "/auth.css", "/app.js", "/styles.css", "/logo.svg").permitAll()
                         .requestMatchers(HttpMethod.POST, "/users").permitAll()
                         .anyRequest().authenticated()
                 )

@@ -37,21 +37,18 @@ public class StudySessionService {
     }
 
     @Transactional
-    public StudySessionResponseDto startStudySession(StudySessionRequestDto requestDto){
+    public StudySessionResponseDto startStudySession(StudySessionRequestDto requestDto, String email){
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь не найден"));
 
-        if (requestDto.userId() == null) {
-            throw new InvalidRequestException("userId is required");
-        }
         if (requestDto.tagId() == null) {
             throw new InvalidRequestException("tagId is required");
         }
 
-        User user = userRepository.findById(requestDto.userId()).orElseThrow(
-                    () -> new UserNotFoundException("User not found with id" + requestDto.userId())
-            );
+
 
         Optional<StudySession> activeSession = studySessionRepository.
-                findByUserIdAndStatus(requestDto.userId(), SessionStatus.ACTIVE);
+                findByUserIdAndStatus(user.getId(), SessionStatus.ACTIVE);
 
         if(activeSession.isPresent()){
             throw new ConflictExсeption("User already has an active study session");
@@ -119,26 +116,29 @@ public class StudySessionService {
 
     }
     @Transactional(readOnly = true)
-    public List<StudySessionResponseDto> getAllSessionsByUserId(Long id){
-        if(id == null){
-            throw new InvalidRequestException("userId is required");
-        }
-        userRepository.findById(id).orElseThrow(
-                () -> new UserNotFoundException("User not found with id" + id)
+    public List<StudySessionResponseDto> getAllSessionsByUserId(String email){
+        User user = userRepository.findByEmailIgnoreCase(email).orElseThrow(
+                () -> new UserNotFoundException("Пользователь не найден")
         );
 
-        List<StudySession> list = studySessionRepository.findAllByUserIdOrderByStartTimeDesc(id);
+        List<StudySession> list = studySessionRepository.findAllByUserIdOrderByStartTimeDesc(user.getId());
         List<StudySessionResponseDto> listResponse = list.stream()
                 .map(this::toResponse).toList();
         return listResponse;
     }
 
     @Transactional
-    public StudySessionResponseDto endStudySession(Long sessionId){
+    public StudySessionResponseDto endStudySession(Long sessionId, String email){
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь не найден"));
+
         StudySession session = studySessionRepository.findById(sessionId).
                 orElseThrow(
                         () -> new SessionNotFoundException("Session not found with id" + sessionId)
                 );
+        if(!session.getUser().getId().equals(user.getId())){
+            throw new SessionNotFoundException("Сессия с таким id не найдена");
+        }
 
         if (session.getStatus() != SessionStatus.ACTIVE) {
             throw new ConflictExсeption("Session is not active");

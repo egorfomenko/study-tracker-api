@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 
 @Service
 public class TagService {
@@ -31,8 +30,12 @@ public class TagService {
         this.studySessionRepository = studySessionRepository;
     }
 
-    public List<TagResponseDto> getAllTags(){
-        List<Tag> list = tagRepository.findAll().stream().toList();
+    public List<TagResponseDto> getAllTags(String email){
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь не найден"));
+
+        List<Tag> list = tagRepository.findAllByUserId(user.getId()).stream().toList();
+
         List<TagResponseDto> listResponse = list.stream().map(
                 tag -> toResponse(tag)
         ).toList();
@@ -40,61 +43,36 @@ public class TagService {
         return listResponse;
     }
 
-    public TagResponseDto getTagById(Long id){
-        Tag tag = tagRepository.findById(id).orElseThrow(
+    public TagResponseDto getTagById(Long id, String email){
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь не найден"));
+
+
+
+        Tag tag = tagRepository.findByIdAndUser_Id(id, user.getId()).orElseThrow(
                 () -> new TagNotFoundException("Tag not found with id" + id)
         );
 
         return toResponse(tag);
     }
 
-    public Long getAlldurationSeconds(Long id, Long tagId){
-        if(id == null || tagId == null){
-            throw new InvalidRequestException("userId и tagId не могут быть null");
-        }
+    public Long getAlldurationSeconds(String email, Long tagId){
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь не найден"));
+        tagRepository.findByIdAndUser_Id(tagId, user.getId())
+                .orElseThrow(() -> new TagNotFoundException("Тег не найден"));
 
-        Tag tag = tagRepository.findById(tagId)
-                .orElseThrow(() -> new TagNotFoundException("Тега с таким id нет"));
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("Пользователя с таким id нет"));
-
-        Long userIdInTheTag = (tag.getUser() != null && tag.getUser().getId() != null) ? tag.getUser().getId() : null;
-        Long userId = (user.getId() != null) ? user.getId() : null;
-
-        if(userIdInTheTag == null || userId == null || !userIdInTheTag.equals(id) || !userId.equals(id)){
-            throw new TagNotFoundException("у пользователя, указанного в URL, такого тега нет.");
-        }
-
-        return studySessionRepository.sumDurationByUserAndTag(id, tagId, SessionStatus.COMPLETED);
-    }
-
-    public List<TagResponseDto> getAllTagsByUserId(Long id) {
-        if(id == null){
-            throw new InvalidRequestException("userId is required");
-        }
-        userRepository.findById(id).orElseThrow(
-                () -> new UserNotFoundException("User not found with id" + id));
-
-
-        List<Tag> tags = tagRepository.findAllByUserId(id);
-        List<TagResponseDto> tagsResponse = tags.stream().map(
-                this::toResponse
-        ).toList();
-        return tagsResponse;
+        return studySessionRepository.sumDurationByUserAndTag(user.getId(), tagId, SessionStatus.COMPLETED);
     }
 
     @Transactional
-    public TagResponseDto createTag(TagCreateRequestDto request){
-        if(request.userId() == null){
+    public TagResponseDto createTag(TagCreateRequestDto request, String email){
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь не найден"));
+
+        if(user.getId() == null){
             throw new InvalidRequestException("userId is required");
         }
-
-        User user = userRepository.findById(request.userId()).orElseThrow(
-                    () -> new UserNotFoundException(
-                            "User not found with id: " + request.userId()
-                    )
-            );
-
 
         Tag tag = toEntity(request, user);
         tag = tagRepository.save(tag);
@@ -103,8 +81,11 @@ public class TagService {
     }
 
     @Transactional
-    public TagResponseDto updateTag(Long id, TagUpdateRequestDto request){
-        Tag tag = tagRepository.findById(id).orElseThrow(
+    public TagResponseDto updateTag(Long id, TagUpdateRequestDto request, String email){
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь не найден"));
+
+        Tag tag = tagRepository.findByIdAndUser_Id(id, user.getId()).orElseThrow(
                 () -> new TagNotFoundException("Tag not found with id" + id)
         );
 
@@ -115,8 +96,12 @@ public class TagService {
     }
 
     @Transactional
-    public TagResponseDto deleteTag(Long id){
-        Tag tag = tagRepository.findById(id).orElseThrow(() -> new TagNotFoundException("Tag not found with id: " + id));
+    public TagResponseDto deleteTag(Long id,String email){
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь не найден"));
+
+        Tag tag = tagRepository.findByIdAndUser_Id(id,user.getId())
+                .orElseThrow(() -> new TagNotFoundException("Tag not found with id: " + id));
         if(taskRepository.existsByTagId(tag.getId()) || studySessionRepository.existsByTagId(tag.getId())){
             throw new InvalidRequestException("Can't delete this tag. It has connections");
         }

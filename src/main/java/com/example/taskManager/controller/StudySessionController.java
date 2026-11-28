@@ -5,7 +5,10 @@ import com.example.taskManager.dto.StudySessionDto.StudySessionResponseDto;
 import com.example.taskManager.service.StudySessionService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/sessions")
@@ -16,18 +19,30 @@ public class StudySessionController {
         this.studySessionService = studySessionService;
     }
 
+    @GetMapping()
+    public ResponseEntity<List<StudySessionResponseDto>> getAllSessionsByUserId(
+            Authentication authentication
+    ){
+        String email = authentication.getName();
+        return ResponseEntity.status(200).body(studySessionService.getAllSessionsByUserId( email));
+    }
+
     @PostMapping("/start")
     public ResponseEntity<StudySessionResponseDto> startSession (
-            @RequestBody @Valid StudySessionRequestDto requestDto
+            @RequestBody @Valid StudySessionRequestDto requestDto,
+            Authentication authenticationl
             )
     {
-        return ResponseEntity.status(201).body(studySessionService.startStudySession(requestDto));
+        String email = authenticationl.getName();
+        return ResponseEntity.status(201).body(studySessionService.startStudySession(requestDto, email));
     }
 
     @PostMapping("/{id}/stop")
     public ResponseEntity<StudySessionResponseDto> stopSession(
-            @PathVariable("id") Long id
+            @PathVariable("id") Long id,
+            Authentication authentication
     ){
-        return ResponseEntity.status(200).body(studySessionService.endStudySession(id));
+        String email = authentication.getName();
+        return ResponseEntity.status(200).body(studySessionService.endStudySession(id, email));
     }
 }

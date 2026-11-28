@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Positive;
 
 public record TagCreateRequestDto(
         @NotBlank String name,
-        String colorHex,
-        @NotNull @Positive Long userId
+        String colorHex
 ){
 }
